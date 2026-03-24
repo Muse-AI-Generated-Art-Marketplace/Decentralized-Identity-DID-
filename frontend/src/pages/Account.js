@@ -27,7 +27,8 @@ import {
   Info,
   Timeline,
   AccountBalanceWallet,
-  MonetizationOn
+  MonetizationOn,
+  Security
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -105,7 +106,7 @@ const Account = () => {
   };
 
   return (
-    <Box>
+    <Box component="main" aria-label="Account information page">
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Account Information
       </Typography>
@@ -113,16 +114,16 @@ const Account = () => {
         View Stellar account details, balances, and transaction history
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} role="region" aria-label="Account management">
         {/* Account Search */}
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom component="h2">
                 Search Account
               </Typography>
               
-              <form onSubmit={handleSubmit(handleSearchAccount)}>
+              <form onSubmit={handleSubmit(handleSearchAccount)} aria-label="Search account form">
                 <Controller
                   name="publicKey"
                   control={control}
@@ -135,10 +136,18 @@ const Account = () => {
                       margin="normal"
                       error={!!errors.publicKey}
                       helperText={errors.publicKey?.message || 'Format: G...'}
+                      inputProps={{
+                        'aria-describedby': errors.publicKey ? 'public-key-error' : undefined,
+                      }}
                       InputProps={{
-                        startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+                        startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} aria-hidden="true" />,
                         endAdornment: wallet?.publicKey === field.value && (
-                          <Chip label="Your Wallet" size="small" color="primary" />
+                          <Chip 
+                            label="Your Wallet" 
+                            size="small" 
+                            color="primary" 
+                            aria-label="This is your connected wallet"
+                          />
                         )
                       }}
                     />
@@ -150,8 +159,9 @@ const Account = () => {
                   variant="contained"
                   size="large"
                   disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : <AccountBalance />}
+                  startIcon={loading ? <CircularProgress size={20} aria-hidden="true" /> : <AccountBalance aria-hidden="true" />}
                   sx={{ mt: 2 }}
+                  aria-label={loading ? 'Fetching account data' : 'Get account information'}
                 >
                   Get Account Info
                 </Button>
@@ -164,18 +174,19 @@ const Account = () => {
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom component="h2">
                 Quick Actions
               </Typography>
               
-              <Grid container spacing={2}>
+              <Grid container spacing={2} role="navigation" aria-label="Account quick actions">
                 <Grid item xs={12}>
                   <Button
                     variant="outlined"
                     fullWidth
-                    startIcon={loading ? <CircularProgress size={20} /> : <Refresh />}
+                    startIcon={loading ? <CircularProgress size={20} aria-hidden="true" /> : <Refresh aria-hidden="true" />}
                     onClick={() => accountInfo && fetchAccountInfo(accountInfo.accountId)}
                     disabled={!accountInfo || loading}
+                    aria-label={loading ? 'Refreshing account data' : 'Refresh account data'}
                   >
                     {loading ? 'Refreshing...' : 'Refresh Data'}
                   </Button>
@@ -184,8 +195,9 @@ const Account = () => {
                   <Button
                     variant="outlined"
                     fullWidth
-                    startIcon={<AccountBalanceWallet />}
+                    startIcon={<AccountBalanceWallet aria-hidden="true" />}
                     href="/create-did"
+                    aria-label="Navigate to Create DID page"
                   >
                     Create DID
                   </Button>
@@ -198,8 +210,8 @@ const Account = () => {
         {/* Loading State */}
         {loading && !accountInfo && (
           <Grid item xs={12}>
-            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={5}>
-              <CircularProgress size={60} sx={{ mb: 2 }} />
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={5} role="status" aria-live="polite">
+              <CircularProgress size={60} sx={{ mb: 2 }} aria-label="Loading" />
               <Typography variant="h6" color="text.secondary">
                 Fetching Account Data...
               </Typography>
@@ -214,20 +226,24 @@ const Account = () => {
               <Card>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <AccountBalance sx={{ mr: 1, color: 'primary.main' }} />
-                    <Typography variant="h6">Account Details</Typography>
+                    <AccountBalance sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                    <Typography variant="h6" component="h2">Account Details</Typography>
                   </Box>
                   
                   <Paper sx={{ p: 2, bgcolor: 'background.default', mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom id="account-id-label">
                       Account ID
                     </Typography>
                     <Box display="flex" alignItems="center">
-                      <Typography variant="body1" sx={{ fontFamily: 'monospace', mr: 1 }}>
+                      <Typography variant="body1" sx={{ fontFamily: 'monospace', mr: 1 }} aria-labelledby="account-id-label">
                         {accountInfo.accountId}
                       </Typography>
                       <Tooltip title="Copy Account ID">
-                        <IconButton size="small" onClick={() => copyToClipboard(accountInfo.accountId)}>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => copyToClipboard(accountInfo.accountId)}
+                          aria-label="Copy account ID to clipboard"
+                        >
                           <ContentCopy fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -235,10 +251,10 @@ const Account = () => {
                   </Paper>
 
                   <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom id="sequence-label">
                       Sequence Number
                     </Typography>
-                    <Typography variant="body1">
+                    <Typography variant="body1" aria-labelledby="sequence-label">
                       {accountInfo.sequence}
                     </Typography>
                   </Paper>
@@ -250,16 +266,16 @@ const Account = () => {
               <Card>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <MonetizationOn sx={{ mr: 1, color: 'primary.main' }} />
-                    <Typography variant="h6">Balances</Typography>
+                    <MonetizationOn sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                    <Typography variant="h6" component="h2">Balances</Typography>
                   </Box>
                   
                   {accountInfo.balances && accountInfo.balances.length > 0 ? (
-                    <List>
+                    <List aria-label="Account balances">
                       {accountInfo.balances.map((balance, index) => (
                         <ListItem key={index} divider>
                           <ListItemIcon>
-                            <MonetizationOn color="primary" />
+                            <MonetizationOn color="primary" aria-hidden="true" />
                           </ListItemIcon>
                           <ListItemText
                             primary={formatBalance(balance)}
@@ -283,11 +299,11 @@ const Account = () => {
                 <Card>
                   <CardContent>
                     <Box display="flex" alignItems="center" mb={2}>
-                      <AccountBalanceWallet sx={{ mr: 1, color: 'primary.main' }} />
-                      <Typography variant="h6">Signers</Typography>
+                      <AccountBalanceWallet sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                      <Typography variant="h6" component="h2">Signers</Typography>
                     </Box>
                     
-                    <List>
+                    <List aria-label="Account signers">
                       {accountInfo.signers.map((signer, index) => (
                         <ListItem key={index} divider>
                           <ListItemText
@@ -297,7 +313,11 @@ const Account = () => {
                                   {signer.key}
                                 </Typography>
                                 <Tooltip title="Copy Signer Key">
-                                  <IconButton size="small" onClick={() => copyToClipboard(signer.key)}>
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => copyToClipboard(signer.key)}
+                                    aria-label="Copy signer key to clipboard"
+                                  >
                                     <ContentCopy fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
@@ -319,12 +339,12 @@ const Account = () => {
                 <Card>
                   <CardContent>
                     <Box display="flex" alignItems="center" mb={2}>
-                      <Security sx={{ mr: 1, color: 'primary.main' }} />
-                      <Typography variant="h6">Thresholds</Typography>
+                      <Security sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                      <Typography variant="h6" component="h2">Thresholds</Typography>
                     </Box>
                     
-                    <Grid container spacing={2}>
-                      <Grid item xs={4}>
+                    <Grid container spacing={2} role="list" aria-label="Account thresholds">
+                      <Grid item xs={4} role="listitem">
                         <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                           <Typography variant="h6" color="primary.main">
                             {accountInfo.thresholds.low_threshold}
@@ -334,7 +354,7 @@ const Account = () => {
                           </Typography>
                         </Paper>
                       </Grid>
-                      <Grid item xs={4}>
+                      <Grid item xs={4} role="listitem">
                         <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                           <Typography variant="h6" color="warning.main">
                             {accountInfo.thresholds.med_threshold}
@@ -344,7 +364,7 @@ const Account = () => {
                           </Typography>
                         </Paper>
                       </Grid>
-                      <Grid item xs={4}>
+                      <Grid item xs={4} role="listitem">
                         <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                           <Typography variant="h6" color="error.main">
                             {accountInfo.thresholds.high_threshold}
@@ -366,11 +386,11 @@ const Account = () => {
                 <Card>
                   <CardContent>
                     <Box display="flex" alignItems="center" mb={2}>
-                      <Timeline sx={{ mr: 1, color: 'primary.main' }} />
-                      <Typography variant="h6">Recent Transactions</Typography>
+                      <Timeline sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                      <Typography variant="h6" component="h2">Recent Transactions</Typography>
                     </Box>
                     
-                    <List>
+                    <List aria-label="Recent transactions">
                       {transactions.map((tx, index) => (
                         <ListItem key={index} divider>
                           <ListItemText
@@ -380,7 +400,11 @@ const Account = () => {
                                   {tx.hash?.substring(0, 16)}...
                                 </Typography>
                                 <Tooltip title="Copy Transaction Hash">
-                                  <IconButton size="small" onClick={() => copyToClipboard(tx.hash)}>
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => copyToClipboard(tx.hash)}
+                                    aria-label="Copy transaction hash to clipboard"
+                                  >
                                     <ContentCopy fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
@@ -410,8 +434,8 @@ const Account = () => {
               <Card>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <Info sx={{ mr: 1, color: 'primary.main' }} />
-                    <Typography variant="h6">Raw Account Data</Typography>
+                    <Info sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                    <Typography variant="h6" component="h2">Raw Account Data</Typography>
                   </Box>
                   
                   <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
@@ -421,7 +445,7 @@ const Account = () => {
                       overflowX: 'auto',
                       maxHeight: '300px',
                       overflowY: 'auto'
-                    }}>
+                    }} aria-label="Raw account data JSON">
                       {JSON.stringify(accountInfo, null, 2)}
                     </Typography>
                   </Paper>

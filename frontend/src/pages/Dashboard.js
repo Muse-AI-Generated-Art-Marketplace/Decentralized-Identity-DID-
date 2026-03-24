@@ -66,39 +66,39 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <Box>
+      <Box component="main" aria-label="Dashboard">
         <Typography variant="h4" gutterBottom>
           Dashboard
         </Typography>
-        <LinearProgress />
+        <LinearProgress aria-label="Loading dashboard data" />
       </Box>
     );
   }
 
   return (
-    <Box>
+    <Box component="main" aria-label="Stellar DID Platform Dashboard">
       <Typography variant="h4" gutterBottom fontWeight="bold">
-        🚀 Stellar DID Platform Dashboard
+        Stellar DID Platform Dashboard
       </Typography>
       
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3 }} role="alert">
           {error}
         </Alert>
       )}
 
       {stats && (
-        <Grid container spacing={3}>
+        <Grid container spacing={3} role="region" aria-label="Dashboard statistics">
           {/* Network Status */}
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
-                  <CloudQueue sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6">Network Status</Typography>
+                  <CloudQueue sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                  <Typography variant="h6" component="h2">Network Status</Typography>
                 </Box>
                 <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" id="network-label">
                     Network
                   </Typography>
                   <Chip 
@@ -106,11 +106,12 @@ const Dashboard = () => {
                     color="success" 
                     size="small" 
                     sx={{ mb: 2 }}
+                    aria-labelledby="network-label"
                   />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" id="contract-address-label">
                     Contract Address
                   </Typography>
-                  <Typography variant="body1" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  <Typography variant="body1" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }} aria-labelledby="contract-address-label">
                     {stats.contractAddress}
                   </Typography>
                 </Paper>
@@ -123,13 +124,13 @@ const Dashboard = () => {
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
-                  <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6">Platform Statistics</Typography>
+                  <TrendingUp sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                  <Typography variant="h6" component="h2">Platform Statistics</Typography>
                 </Box>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                <Grid container spacing={2} role="list" aria-label="Platform statistics list">
+                  <Grid item xs={6} role="listitem">
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
-                      <Typography variant="h4" color="primary.main">
+                      <Typography variant="h4" color="primary.main" aria-label={`${stats.totalDIDs} total DIDs`}>
                         {stats.totalDIDs}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -137,9 +138,9 @@ const Dashboard = () => {
                       </Typography>
                     </Paper>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid item xs={6} role="listitem">
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
-                      <Typography variant="h4" color="secondary.main">
+                      <Typography variant="h4" color="secondary.main" aria-label={`${stats.totalCredentials} credentials`}>
                         {stats.totalCredentials}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -147,9 +148,9 @@ const Dashboard = () => {
                       </Typography>
                     </Paper>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid item xs={6} role="listitem">
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
-                      <Typography variant="h4" color="success.main">
+                      <Typography variant="h4" color="success.main" aria-label={`${stats.activeUsers} active users`}>
                         {stats.activeUsers}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -157,9 +158,9 @@ const Dashboard = () => {
                       </Typography>
                     </Paper>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid item xs={6} role="listitem">
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
-                      <Typography variant="h4" color="warning.main">
+                      <Typography variant="h4" color="warning.main" aria-label={`${stats.uptime} uptime`}>
                         {stats.uptime}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -177,13 +178,13 @@ const Dashboard = () => {
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
-                  <VerifiedUser sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6">Use Cases</Typography>
+                  <VerifiedUser sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                  <Typography variant="h6" component="h2">Use Cases</Typography>
                 </Box>
-                <List>
+                <List aria-label="DID use cases">
                   <ListItem>
                     <ListItemIcon>
-                      <School color="primary" />
+                      <School color="primary" aria-hidden="true" />
                     </ListItemIcon>
                     <ListItemText 
                       primary="Academic Credentials" 
@@ -193,7 +194,7 @@ const Dashboard = () => {
                   <Divider />
                   <ListItem>
                     <ListItemIcon>
-                      <Work color="primary" />
+                      <Work color="primary" aria-hidden="true" />
                     </ListItemIcon>
                     <ListItemText 
                       primary="Professional Licensing" 
@@ -203,7 +204,7 @@ const Dashboard = () => {
                   <Divider />
                   <ListItem>
                     <ListItemIcon>
-                      <CreditCard color="primary" />
+                      <CreditCard color="primary" aria-hidden="true" />
                     </ListItemIcon>
                     <ListItemText 
                       primary="Age Verification" 
@@ -213,7 +214,7 @@ const Dashboard = () => {
                   <Divider />
                   <ListItem>
                     <ListItemIcon>
-                      <Security color="primary" />
+                      <Security color="primary" aria-hidden="true" />
                     </ListItemIcon>
                     <ListItemText 
                       primary="Identity Verification" 
@@ -230,23 +231,24 @@ const Dashboard = () => {
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
-                  <Speed sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6">Performance Metrics</Typography>
+                  <Speed sx={{ mr: 1, color: 'primary.main' }} aria-hidden="true" />
+                  <Typography variant="h6" component="h2">Performance Metrics</Typography>
                 </Box>
                 <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" gutterBottom id="response-time-label">
                     Average Response Time
                   </Typography>
-                  <Typography variant="h5" color="success.main" gutterBottom>
+                  <Typography variant="h5" color="success.main" gutterBottom aria-labelledby="response-time-label">
                     {stats.avgResponseTime}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" gutterBottom id="version-label">
                     Contract Version
                   </Typography>
                   <Chip 
                     label={`v${stats.contractVersion}`} 
                     color="info" 
                     size="small" 
+                    aria-labelledby="version-label"
                   />
                 </Paper>
               </CardContent>
@@ -257,16 +259,17 @@ const Dashboard = () => {
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom component="h2">
                   Quick Actions
                 </Typography>
-                <Grid container spacing={2}>
+                <Grid container spacing={2} role="navigation" aria-label="Quick actions">
                   <Grid item xs={12} sm={6} md={3}>
                     <Button 
                       variant="contained" 
                       fullWidth 
                       href="/create-did"
-                      startIcon={<AccountBalance />}
+                      startIcon={<AccountBalance aria-hidden="true" />}
+                      aria-label="Navigate to Create DID page"
                     >
                       Create DID
                     </Button>
@@ -276,7 +279,8 @@ const Dashboard = () => {
                       variant="outlined" 
                       fullWidth 
                       href="/resolve-did"
-                      startIcon={<VerifiedUser />}
+                      startIcon={<VerifiedUser aria-hidden="true" />}
+                      aria-label="Navigate to Resolve DID page"
                     >
                       Resolve DID
                     </Button>
@@ -286,7 +290,8 @@ const Dashboard = () => {
                       variant="outlined" 
                       fullWidth 
                       href="/credentials"
-                      startIcon={<School />}
+                      startIcon={<School aria-hidden="true" />}
+                      aria-label="Navigate to Manage Credentials page"
                     >
                       Manage Credentials
                     </Button>
@@ -296,7 +301,8 @@ const Dashboard = () => {
                       variant="outlined" 
                       fullWidth 
                       href="/account"
-                      startIcon={<AccountBalance />}
+                      startIcon={<AccountBalance aria-hidden="true" />}
+                      aria-label="Navigate to Account Info page"
                     >
                       Account Info
                     </Button>
