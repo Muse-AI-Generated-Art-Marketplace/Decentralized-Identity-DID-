@@ -9,6 +9,7 @@ import {
   Menu,
   MenuItem,
   Chip,
+  Divider,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -76,9 +77,9 @@ const Navbar = () => {
                 color="inherit"
                 onClick={() => handleNavigation(item.path)}
                 sx={{
-                  backgroundColor: location.pathname === item.path ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  backgroundColor: location.pathname === item.path ? 'action.selected' : 'transparent',
                   '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    backgroundColor: 'action.hover',
                   },
                 }}
                 startIcon={item.icon}
@@ -100,7 +101,7 @@ const Navbar = () => {
                     color="success"
                     size="small"
                     variant="outlined"
-                    sx={{ borderColor: 'white', color: 'white' }}
+                    sx={{ borderColor: 'primary.contrastText', color: 'primary.contrastText' }}
                   />
                   <Button color="inherit" onClick={disconnectWallet} size="small" disabled={loading}>
                     Disconnect
