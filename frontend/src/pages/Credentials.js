@@ -273,16 +273,14 @@ const Credentials = () => {
                             {...field}
                             minRows={6}
                             placeholder='{"degree": "Bachelor of Science", "university": "Example University"}'
-                            sx={{
+                            style={{
                               width: '100%',
                               fontFamily: 'monospace',
                               fontSize: '0.9rem',
                               padding: '12px',
-                              border: 1,
-                              borderColor: 'divider',
+                              border: '1px solid #ccc',
                               borderRadius: '4px',
-                              backgroundColor: 'background.paper',
-                              color: 'text.primary'
+                              backgroundColor: '#f5f5f5'
                             }}
                           />
                           {issueForm.formState.errors.claims && (
