@@ -34,7 +34,7 @@ import ErrorDisplay from '../components/ErrorDisplay';
 const schema = yup.object().shape({
   did: yup.string()
     .required('DID is required')
-    .matches(/^did:stellar:G[A-Z0-9]{55}$/, 'Invalid DID format. Expected: did:stellar:G...'),
+    .matches(/^did:stellar:G[A-Z2-7]{55}$/, 'Invalid DID format. Expected: did:stellar:G...'),
 });
 
 const ResolveDID = () => {
