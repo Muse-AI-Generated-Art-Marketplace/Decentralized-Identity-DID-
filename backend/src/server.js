@@ -18,10 +18,14 @@ const { logger, errorHandler } = require('./middleware');
 const { connectDatabase } = require('./utils/database');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const GraphQLServer = require('./graphql/server');
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3001;
+
+// Initialize GraphQL Server
+const graphqlServer = new GraphQLServer(app);
 
 // Security middleware
 app.use(helmet());
@@ -80,9 +84,11 @@ app.get('/api', (req, res) => {
       credentials: '/api/v1/credentials',
       contracts: '/api/v1/contracts',
       auth: '/api/v1/auth',
+      graphql: '/graphql',
       health: '/health'
     },
-    documentation: '/api/docs'
+    documentation: '/api/docs',
+    graphqlPlayground: `http://localhost:${PORT}/graphql`
   });
 });
 
@@ -116,13 +122,19 @@ async function startServer() {
   try {
     // Connect to database
     await connectDatabase();
-    
-    app.listen(PORT, () => {
-      logger.info(`🚀 Stellar DID Backend running on port ${PORT}`);
-      logger.info(`📡 Network: ${process.env.STELLAR_NETWORK || 'TESTNET'}`);
-      logger.info(`🌐 API: http://localhost:${PORT}/api`);
-      logger.info(`📚 Health: http://localhost:${PORT}/health`);
-    });
+
+    // Initialize GraphQL server
+    await graphqlServer.initialize();
+
+    // Start the server with GraphQL
+    await graphqlServer.startServer(PORT);
+
+    logger.info(`🚀 Stellar DID Backend running on port ${PORT}`);
+    logger.info(`📡 Network: ${process.env.STELLAR_NETWORK || 'TESTNET'}`);
+    logger.info(`🌐 REST API: http://localhost:${PORT}/api`);
+    logger.info(`📊 GraphQL API: http://localhost:${PORT}/graphql`);
+    logger.info(`📚 Health: http://localhost:${PORT}/health`);
+    logger.info(`📖 Documentation: http://localhost:${PORT}/api/docs`);
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
