@@ -4,6 +4,7 @@ import { handleApiError } from '../utils/errorHandler';
 import secureStorage from '../utils/secureStorage';
 
 const WalletContext = createContext(null);
+const STELLAR_PUBLIC_KEY_REGEX = /^G[A-Z2-7]{55}$/;
 
 export const WalletProvider = ({ children }) => {
   const [wallet, setWallet] = useState(null);
@@ -126,6 +127,28 @@ export const WalletProvider = ({ children }) => {
     toast.info('Wallet disconnected');
   }, []);
 
+  const connectWalletWithQR = useCallback(async (publicKey) => {
+    const normalizedKey = publicKey?.trim();
+
+    if (!normalizedKey || !STELLAR_PUBLIC_KEY_REGEX.test(normalizedKey)) {
+      throw new Error('Invalid Stellar public key in QR code');
+    }
+
+    const walletData = {
+      publicKey: normalizedKey,
+      type: 'qr',
+      connectedAt: new Date().toISOString(),
+    };
+
+    setWallet(walletData);
+    setIsConnected(true);
+    secureStorage.setWalletData(walletData);
+    secureStorage.removePrivateKey();
+    toast.success('Wallet connected from QR code');
+
+    return walletData;
+  }, []);
+
   // Get wallet balance
   const getBalance = useCallback(async () => {
     if (!wallet?.publicKey) return null;
@@ -189,6 +212,7 @@ export const WalletProvider = ({ children }) => {
     isConnected,
     loading,
     connectWallet,
+    connectWalletWithQR,
     disconnectWallet,
     getBalance,
     signTransaction,

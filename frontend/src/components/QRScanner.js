@@ -25,6 +25,7 @@ const SCANNER_ID = "qr-scanner-viewfinder";
 const QRScanner = ({ onScan, onError, onClose, allowedTypes }) => {
   const scannerRef = useRef(null);
   const isMountedRef = useRef(true);
+  const hasScannedRef = useRef(false);
   const [scanning, setScanning] = useState(false);
   const [cameras, setCameras] = useState([]);
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
@@ -38,6 +39,7 @@ const QRScanner = ({ onScan, onError, onClose, allowedTypes }) => {
   // Initialise scanner and enumerate cameras on mount
   useEffect(() => {
     let cancelled = false;
+    hasScannedRef.current = false;
 
     Html5Qrcode.getCameras()
       .then((devices) => {
@@ -116,6 +118,7 @@ const QRScanner = ({ onScan, onError, onClose, allowedTypes }) => {
   );
 
   const createAndStart = (cameraId) => {
+    hasScannedRef.current = false;
     const html5QrCode = new Html5Qrcode(SCANNER_ID, {
       formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
       verbose: false,
@@ -159,7 +162,7 @@ const QRScanner = ({ onScan, onError, onClose, allowedTypes }) => {
         .catch(() => {})
         .finally(() => {
           // Check if scanner still exists and component is mounted
-          if (scannerRef.current && isMountedRef.current) {
+          if (scannerRef.current) {
             scannerRef.current.clear();
             scannerRef.current = null;
           }
@@ -171,6 +174,10 @@ const QRScanner = ({ onScan, onError, onClose, allowedTypes }) => {
   }, []);
 
   const handleDecode = (decodedText) => {
+    if (hasScannedRef.current) {
+      return;
+    }
+
     const result = parsePayload(decodedText);
     if (!result.ok) {
       setError("unrecognised QR code format");
@@ -192,8 +199,10 @@ const QRScanner = ({ onScan, onError, onClose, allowedTypes }) => {
       return;
     }
 
+    hasScannedRef.current = true;
     setError(null);
     setStatusMessage(`Scanned: ${payload.type}`);
+    stopScanner();
     if (onScan) onScan(payload);
   };
 
