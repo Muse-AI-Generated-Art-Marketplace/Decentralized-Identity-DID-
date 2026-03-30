@@ -45,7 +45,7 @@ function getPayloadId(payload) {
  *   payload  — QRPayload object to encode
  *   size     — canvas size in px (default 256, minimum 256)
  */
-const QRGenerator = React.memo(({ payload, size = MIN_SIZE }) => {
+const QRGenerator = ({ payload, size = MIN_SIZE }) => {
   const canvasRef = useRef(null);
   const [deepLink, setDeepLink] = useState(null);
   const [loading, setLoading] = useState(false);

@@ -42,7 +42,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
 import { stellarAPI } from "../services/api";
-import { useWallet } from "../hooks/useWallet";
+import { useWallet } from '../contexts/WalletContext';
 import { handleApiError } from "../utils/errorHandler";
 import ErrorDisplay from "../components/ErrorDisplay";
 import QRScanner from "../components/QRScanner";
@@ -165,7 +165,7 @@ const Credentials = () => {
     toast.success("Copied to clipboard!");
   };
 
-  const useTemplate = (template) => {
+  const applyTemplate = (template) => {
     issueForm.setValue("credentialType", template.id);
     issueForm.setValue("claims", JSON.stringify(template.claims, null, 2));
   };
@@ -372,7 +372,7 @@ const Credentials = () => {
                           cursor: "pointer",
                           "&:hover": { bgcolor: "action.hover" },
                         }}
-                        onClick={() => useTemplate(template)}
+                        onClick={() => applyTemplate(template)}
                       >
                         <Box display="flex" alignItems="center" mb={1}>
                           {getCredentialIcon(template.id)}

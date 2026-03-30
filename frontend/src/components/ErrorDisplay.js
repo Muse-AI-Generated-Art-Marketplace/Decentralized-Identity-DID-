@@ -23,12 +23,12 @@ import {
 const ErrorDisplay = React.memo(({ error, onClose, severity = 'error' }) => {
   const [expanded, setExpanded] = useState(false);
   
+  // Memoize error info to prevent recalculations
+  const memoizedErrorInfo = useMemo(() => error ? { ...error } : null, [error]);
+  
   if (!error) return null;
   
-  // Memoize error info to prevent recalculations
-  const memoizedErrorInfo = useMemo(() => ({ ...error }), [error]);
-  
-  const errorInfo = error;
+  const errorInfo = memoizedErrorInfo;
   const hasSuggestions = errorInfo.suggestions && errorInfo.suggestions.length > 0;
   const hasTechnicalDetails = errorInfo.technicalDetails;
   
