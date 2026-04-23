@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 /**
  * @title StellarDIDRegistry
  * @dev Smart contract interface for DID operations that can be called from Stellar
@@ -8,6 +10,7 @@ pragma solidity ^0.8.19;
  * In practice, Stellar smart contracts are implemented differently
  */
 contract StellarDIDRegistry {
+    using SafeMath for uint256;
     
     // Role-based access control
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -233,10 +236,10 @@ contract StellarDIDRegistry {
         _userRoles[account].push(role);
         
         // Update role counts
-        if (role == ADMIN_ROLE) _adminCount++;
-        else if (role == ISSUER_ROLE) _issuerCount++;
-        else if (role == VERIFIER_ROLE) _verifierCount++;
-        else if (role == REGISTRAR_ROLE) _registrarCount++;
+        if (role == ADMIN_ROLE) _adminCount = _adminCount.add(1);
+        else if (role == ISSUER_ROLE) _issuerCount = _issuerCount.add(1);
+        else if (role == VERIFIER_ROLE) _verifierCount = _verifierCount.add(1);
+        else if (role == REGISTRAR_ROLE) _registrarCount = _registrarCount.add(1);
     }
     
     function _revokeRole(bytes32 role, address account) internal {
@@ -246,17 +249,17 @@ contract StellarDIDRegistry {
         uint256 length = _userRoles[account].length;
         for (uint256 i = 0; i < length; i++) {
             if (_userRoles[account][i] == role) {
-                _userRoles[account][i] = _userRoles[account][length - 1];
+                _userRoles[account][i] = _userRoles[account][length.sub(1)];
                 _userRoles[account].pop();
                 break;
             }
         }
         
         // Update role counts
-        if (role == ADMIN_ROLE) _adminCount--;
-        else if (role == ISSUER_ROLE) _issuerCount--;
-        else if (role == VERIFIER_ROLE) _verifierCount--;
-        else if (role == REGISTRAR_ROLE) _registrarCount--;
+        if (role == ADMIN_ROLE) _adminCount = _adminCount.sub(1);
+        else if (role == ISSUER_ROLE) _issuerCount = _issuerCount.sub(1);
+        else if (role == VERIFIER_ROLE) _verifierCount = _verifierCount.sub(1);
+        else if (role == REGISTRAR_ROLE) _registrarCount = _registrarCount.sub(1);
     }
     
     /**
@@ -513,7 +516,7 @@ contract StellarDIDRegistry {
                 credentials[credentialIds[i]].revoked = true;
                 if (_activeCredentials > 0) _activeCredentials--;
                 emit CredentialRevoked(credentialIds[i]);
-                revokedCount++;
+                revokedCount = revokedCount.add(1);
             }
         }
 
@@ -589,7 +592,7 @@ contract StellarDIDRegistry {
         
         for (uint256 i = 0; i < length; i++) {
             if (keccak256(bytes(ownerDIDs[i])) == keccak256(bytes(did))) {
-                ownerDIDs[i] = ownerDIDs[length - 1];
+                ownerDIDs[i] = ownerDIDs[length.sub(1)];
                 ownerDIDs.pop();
                 break;
             }
