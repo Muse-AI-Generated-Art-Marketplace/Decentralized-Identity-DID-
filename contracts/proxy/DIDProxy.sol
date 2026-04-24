@@ -46,6 +46,8 @@ contract DIDProxy is Initializable, UUPSUpgradeable, OwnableUpgradeable {
      * @throws InitializationFailed if initialization parameters are invalid
      */
     function initialize(address initialOwner) public initializer {
+        require(initialOwner != address(0), "Initial owner cannot be zero address");
+        require(initialOwner.code.length == 0, "Initial owner cannot be a contract");
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
     }
@@ -59,6 +61,9 @@ contract DIDProxy is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         override 
         onlyOwner 
     {
+        require(newImplementation != address(0), "New implementation cannot be zero address");
+        require(newImplementation != address(this), "Cannot upgrade to self");
+        require(newImplementation.code.length > 0, "New implementation must be a contract");
         // Only the owner can authorize upgrades
     }
     
