@@ -3,6 +3,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const { connectDatabase } = require('./utils/database');
+const migrationRunner = require('./utils/migrationRunner');
+const templateService = require('./services/templateService');
 
 const app = express();
 
@@ -11,11 +14,33 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.stellar.org", "https://horizon.stellar.org"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      upgradeInsecureRequests: [],
     },
   },
+  crossOriginEmbedderPolicy: true,
+  crossOriginOpenerPolicy: { policy: "same-origin" },
+  crossOriginResourcePolicy: { policy: "same-origin" },
+  dnsPrefetchControl: { allow: false },
+  frameguard: { action: "deny" },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  ieNoOpen: true,
+  noSniff: true,
+  originAgentCluster: true,
+  permittedCrossDomainPolicies: { policy: "none" },
+  referrerPolicy: { policy: "no-referrer" },
+  xssFilter: true,
 }));
 
 // CORS configuration
@@ -83,10 +108,27 @@ app.use('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`CORS origin: ${process.env.FRONTEND_URL}`);
+
+  // Initialize Database
+  try {
+    await connectDatabase();
+    
+    // Run Migrations
+    console.log('Running database migrations...');
+    await migrationRunner.runMigrations();
+    console.log('Database migrations completed');
+
+    // Seed Templates
+    console.log('Seeding default templates...');
+    await templateService.seedCommonTemplates();
+    console.log('Template seeding completed');
+  } catch (error) {
+    console.error('Failed to initialize server resources:', error);
+  }
 });
 
 module.exports = app;
