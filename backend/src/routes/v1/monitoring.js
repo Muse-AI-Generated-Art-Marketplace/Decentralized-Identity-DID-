@@ -4,8 +4,8 @@ const monitoringService = require('../services/monitoringService');
 const { logger } = require('../middleware');
 
 /**
- * @swagger
- * /api/v1/monitoring/alerts:
+ * @openapi
+ * /monitoring/alerts:
  *   get:
  *     summary: Get contract monitoring alerts
  *     tags: [Monitoring]
@@ -31,8 +31,8 @@ router.get('/alerts', (req, res) => {
 });
 
 /**
- * @swagger
- * /api/v1/monitoring/status:
+ * @openapi
+ * /monitoring/status:
  *   get:
  *     summary: Get monitoring service status
  *     tags: [Monitoring]
