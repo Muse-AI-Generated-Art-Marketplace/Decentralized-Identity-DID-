@@ -1,11 +1,15 @@
 const MetricsService = require('../services/metricsService');
+const { getConnectionPoolStats } = require('../utils/database');
 
 class MetricsMiddleware {
   constructor() {
     this.metricsService = new MetricsService();
-    
+
     // Start system metrics collection interval
     this.startSystemMetricsCollection();
+
+    // Start database pool metrics collection
+    this.startDatabaseMetricsCollection();
   }
 
   // Start collecting system metrics periodically
@@ -16,30 +20,59 @@ class MetricsMiddleware {
     }, 30000);
   }
 
+  // Start collecting database pool metrics periodically
+  startDatabaseMetricsCollection() {
+    // Collect database pool metrics every 30 seconds
+    setInterval(() => {
+      try {
+        const dbStats = getConnectionPoolStats();
+
+        // Update database connection metrics
+        if (dbStats.poolSize !== undefined) {
+          this.metricsService.databaseConnections.set(dbStats.poolSize);
+        }
+
+        if (dbStats.availableConnections !== undefined) {
+          this.metricsService.availableDbConnections.set(dbStats.availableConnections);
+        }
+
+        if (dbStats.pendingConnections !== undefined) {
+          this.metricsService.pendingDbConnections.set(dbStats.pendingConnections);
+        }
+
+        // Track connection state
+        this.metricsService.dbConnectionState.set(dbStats.readyState);
+
+      } catch (error) {
+        console.error('Error collecting database metrics:', error.message);
+      }
+    }, 30000);
+  }
+
   // Middleware to track HTTP requests
   requestTracker() {
     return (req, res, next) => {
       const startTime = Date.now();
-      
+
       // Override res.end to track response
       const originalEnd = res.end;
-      res.end = function(...args) {
+      res.end = function (...args) {
         const duration = (Date.now() - startTime) / 1000; // Convert to seconds
         const route = req.route ? req.route.path : req.path || 'unknown';
         const method = req.method;
         const statusCode = res.statusCode;
-        
+
         // Calculate response size
         const responseSize = res.get('content-length') ? parseInt(res.get('content-length')) : 0;
-        
+
         // Record metrics
         this.metricsService.recordHttpRequest(method, route, statusCode, duration);
         this.metricsService.recordApiResponseSize(route, method, responseSize);
-        
+
         // Call original end
         originalEnd.apply(this, args);
       }.bind(this);
-      
+
       next();
     };
   }
@@ -49,10 +82,10 @@ class MetricsMiddleware {
     return (err, req, res, next) => {
       const endpoint = req.route ? req.route.path : req.path || 'unknown';
       const errorType = err.name || 'UnknownError';
-      
+
       // Record error metric
       this.metricsService.recordError(errorType, endpoint);
-      
+
       next(err);
     };
   }
@@ -95,7 +128,7 @@ class MetricsMiddleware {
           errorRate: this.getErrorRate()
         }
       };
-      
+
       res.json(health);
     };
   }

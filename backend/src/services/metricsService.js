@@ -4,7 +4,7 @@ class MetricsService {
   constructor() {
     // Create a Registry to register the metrics
     this.register = new client.Registry();
-    
+
     // Add a default label to all metrics
     this.register.setDefaultLabels({
       app: 'stellar-did-backend'
@@ -96,6 +96,25 @@ class MetricsService {
       name: 'database_connections',
       help: 'Number of active database connections',
       labelNames: ['type'],
+      registers: [this.register]
+    });
+
+    // Database pool specific metrics
+    this.availableDbConnections = new client.Gauge({
+      name: 'database_available_connections',
+      help: 'Number of available database connections in pool',
+      registers: [this.register]
+    });
+
+    this.pendingDbConnections = new client.Gauge({
+      name: 'database_pending_connections',
+      help: 'Number of pending database connections',
+      registers: [this.register]
+    });
+
+    this.dbConnectionState = new client.Gauge({
+      name: 'database_connection_state',
+      help: 'Database connection state (0=disconnected, 1=connected, 2=connecting, 3=disconnecting)',
       registers: [this.register]
     });
 
@@ -220,17 +239,17 @@ class MetricsService {
   collectSystemMetrics() {
     const memUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    
+
     // Set memory metrics
     this.setResourceUtilization('memory_heap_used', memUsage.heapUsed);
     this.setResourceUtilization('memory_heap_total', memUsage.heapTotal);
     this.setResourceUtilization('memory_external', memUsage.external);
     this.setResourceUtilization('memory_rss', memUsage.rss);
-    
+
     // Set CPU metrics (convert to percentage)
     this.setResourceUtilization('cpu_user', cpuUsage.user);
     this.setResourceUtilization('cpu_system', cpuUsage.system);
-    
+
     // Set uptime
     this.setResourceUtilization('uptime_seconds', process.uptime());
   }
