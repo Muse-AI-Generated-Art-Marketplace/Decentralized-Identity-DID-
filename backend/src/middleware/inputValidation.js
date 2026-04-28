@@ -42,11 +42,11 @@ const sanitizeText = (content) => {
   
   return content
     .trim()
-    .replace(/[<>]/g, '') // Remove HTML brackets
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/data:/gi, '') // Remove data: protocol
-    .replace(/vbscript:/gi, '') // Remove vbscript: protocol
-    .replace(/on\w+\s*=/gi, ''); // Remove event handlers
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '')
+    .replace(/on\w+\s*=/gi, '');
 };
 
 /**
@@ -164,7 +164,44 @@ const schemas = {
     .messages({
       'string.pattern.base': 'Credential ID can only contain letters, numbers, hyphens, underscores, and dots',
       'any.required': 'Credential ID is required'
-    })
+    }),
+
+  // List credentials query validation
+  listCredentialsQuery: Joi.object({
+    limit: Joi.number().integer().min(1).max(100).optional(),
+    offset: Joi.number().integer().min(0).optional(),
+    sortBy: Joi.string().valid('issued', 'expires', 'credentialType', 'issuer').optional(),
+    sortOrder: Joi.string().valid('asc', 'desc').optional(),
+    issuer: Joi.string().optional(),
+    subject: Joi.string().optional(),
+    credentialType: Joi.string().optional(),
+    revoked: Joi.boolean().optional(),
+    expired: Joi.boolean().optional(),
+    search: Joi.string().optional()
+  }),
+
+  // Count credentials query validation
+  countQuery: Joi.object({
+    issuer: Joi.string().optional(),
+    subject: Joi.string().optional(),
+    credentialType: Joi.string().optional(),
+    revoked: Joi.boolean().optional(),
+    expired: Joi.boolean().optional()
+  }),
+
+  // Search credentials query validation
+  searchQuery: Joi.object({
+    q: Joi.string()
+      .required()
+      .min(1)
+      .max(200)
+      .messages({
+        'string.min': 'Search query must be at least 1 character',
+        'string.max': 'Search query must not exceed 200 characters',
+        'any.required': 'Search query is required'
+      }),
+    limit: Joi.number().integer().min(1).max(100).optional()
+  })
 };
 
 /**
@@ -294,6 +331,160 @@ const customSchemas = {
   // Fund account endpoint
   fundAccount: Joi.object({
     publicKey: schemas.publicKey
+  }),
+
+  // Auth endpoints
+  register: Joi.object({
+    username: Joi.string()
+      .alphanum()
+      .min(3)
+      .max(30)
+      .required()
+      .messages({
+        'string.alphanum': 'Username must contain only alphanumeric characters',
+        'string.min': 'Username must be at least 3 characters',
+        'string.max': 'Username must not exceed 30 characters',
+        'any.required': 'Username is required'
+      }),
+    email: Joi.string()
+      .email()
+      .required()
+      .messages({
+        'string.email': 'Invalid email format',
+        'any.required': 'Email is required'
+      }),
+    password: Joi.string()
+      .min(8)
+      .max(100)
+      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+      .required()
+      .messages({
+        'string.min': 'Password must be at least 8 characters',
+        'string.max': 'Password must not exceed 100 characters',
+        'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        'any.required': 'Password is required'
+      }),
+    publicKey: schemas.publicKey.optional()
+  }),
+
+  login: Joi.object({
+    email: Joi.string()
+      .email()
+      .required()
+      .messages({
+        'string.email': 'Invalid email format',
+        'any.required': 'Email is required'
+      }),
+    password: Joi.string()
+      .required()
+      .messages({
+        'any.required': 'Password is required'
+      })
+  }),
+
+  updateProfile: Joi.object({
+    username: Joi.string()
+      .alphanum()
+      .min(3)
+      .max(30)
+      .optional(),
+    email: Joi.string()
+      .email()
+      .optional()
+      .messages({
+        'string.email': 'Invalid email format'
+      }),
+    publicKey: schemas.publicKey.optional()
+  }),
+
+  changePassword: Joi.object({
+    currentPassword: Joi.string()
+      .required()
+      .messages({
+        'any.required': 'Current password is required'
+      }),
+    newPassword: Joi.string()
+      .min(8)
+      .max(100)
+      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+      .required()
+      .messages({
+        'string.min': 'New password must be at least 8 characters',
+        'string.max': 'New password must not exceed 100 characters',
+        'string.pattern.base': 'New password must contain at least one uppercase letter, one lowercase letter, and one number',
+        'any.required': 'New password is required'
+      })
+  }),
+
+  // Bridge endpoints
+  bridgeDID: Joi.object({
+    did: schemas.did,
+    ownerAddress: Joi.string()
+      .required()
+      .pattern(/^0x[a-fA-F0-9]{40}$/)
+      .messages({
+        'string.pattern.base': 'Invalid Ethereum owner address format',
+        'any.required': 'Owner address is required'
+      })
+  }),
+
+  bridgeCredential: Joi.object({
+    credentialId: schemas.credentialId,
+    dataHash: Joi.string()
+      .required()
+      .pattern(/^0x[a-fA-F0-9]{64}$/)
+      .messages({
+        'string.pattern.base': 'Invalid data hash format',
+        'any.required': 'Data hash is required'
+      })
+  }),
+
+  bridgeStatus: Joi.object({
+    did: schemas.did
+  }),
+
+  // QR endpoints
+  generateQR: Joi.object({
+    did: schemas.did,
+    action: Joi.string()
+      .valid('sign', 'verify', 'issue', 'revoke')
+      .optional(),
+    expiresAt: Joi.date().iso().optional()
+      .messages({
+        'date.iso': 'Invalid expiration date format'
+      }),
+    metadata: Joi.object().optional()
+  }),
+
+  validateQR: Joi.object({
+    token: Joi.string()
+      .required()
+      .min(1)
+      .messages({
+        'string.min': 'Token is required',
+        'any.required': 'Token is required'
+      })
+  }),
+
+  // Monitoring endpoints
+  alertsQuery: Joi.object({
+    limit: Joi.number().integer().min(1).max(100).optional(),
+    offset: Joi.number().integer().min(0).optional(),
+    severity: Joi.string().valid('info', 'warning', 'error', 'critical').optional(),
+    from: Joi.date().iso().optional(),
+    to: Joi.date().iso().optional()
+  }),
+
+  // Index endpoints
+  signTransaction: Joi.object({
+    transactionXDR: Joi.string()
+      .required()
+      .min(1)
+      .messages({
+        'string.min': 'Transaction XDR is required',
+        'any.required': 'Transaction XDR is required'
+      }),
+    secretKey: schemas.secretKey
   })
 };
 
