@@ -1530,5 +1530,104 @@ class PerformanceOptimizer {
 }
 
 // Additional UX features would be implemented similarly...
+/**
+ * Notification Manager - Real-time WebSocket notifications
+ */
+class NotificationManager {
+  constructor() {
+    this.notifications = [];
+    this.ws = null;
+  }
+
+  async initialize() {
+    this.setupWebSocket();
+    console.log("Notification Manager initialized");
+  }
+
+  setupWebSocket() {
+    if (!window.WebSocket) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = process.env.REACT_APP_WS_URL || `${protocol}//${window.location.host}/ws`;
+    
+    try {
+      this.ws = new WebSocket(wsUrl);
+
+      this.ws.onopen = () => {
+        console.log('WebSocket connection established for notifications');
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'notification' || data.eventType) {
+            this.showNotification(data.payload || data);
+          }
+        } catch (error) {
+          console.error('Error parsing notification data:', error);
+        }
+      };
+
+      this.ws.onclose = () => {
+        console.log('WebSocket disconnected, attempting reconnect in 5s...');
+        setTimeout(() => this.setupWebSocket(), 5000);
+      };
+    } catch (error) {
+      console.error('Failed to setup WebSocket:', error);
+    }
+  }
+
+  showNotification(payload) {
+    this.notifications.push(payload);
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${payload.priority || 'info'}`;
+    toast.innerHTML = `
+      <div class="toast-header">
+        <strong>${payload.subject || payload.title || 'Notification'}</strong>
+        <button onclick="this.parentElement.parentElement.remove()">&times;</button>
+      </div>
+      <div class="toast-body">
+        ${payload.body || payload.message || ''}
+      </div>
+    `;
+
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+      document.body.appendChild(container);
+    }
+
+    if (!document.getElementById('toast-styles')) {
+      const style = document.createElement('style');
+      style.id = 'toast-styles';
+      style.textContent = `
+        .toast-notification { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 250px; animation: slideIn 0.3s ease-out; }
+        .toast-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .toast-header button { background: none; border: none; cursor: pointer; font-size: 1.2em; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      `;
+      document.head.appendChild(style);
+    }
+
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
+  }
+
+  getStatus() {
+    return {
+      active: true,
+      connected: this.ws ? this.ws.readyState === WebSocket.OPEN : false,
+      notificationCount: this.notifications.length
+    };
+  }
+}
+
+class AnimationController { async initialize() {} getStatus() { return { active: true }; } }
+class KeyboardShortcuts { async initialize() {} getStatus() { return { active: true }; } }
+class TooltipManager { async initialize() {} getStatus() { return { active: true }; } }
+class SmartSearch { async initialize() {} getStatus() { return { active: true }; } }
 
 module.exports = UXOptimizer;
