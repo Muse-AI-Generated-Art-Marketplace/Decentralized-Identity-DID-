@@ -14,6 +14,8 @@
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean",
     "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
+    "deploy:testnet": "npx hardhat run scripts/deploy.js --network sepolia",
+    "deploy:verify": "node scripts/verify-deployment.js",
     "node": "npx hardhat node"
   },
   "keywords": [
