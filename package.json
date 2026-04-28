@@ -14,6 +14,8 @@
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean",
     "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
+    "deploy:testnet": "npx hardhat run scripts/deploy.js --network sepolia",
+    "deploy:verify": "node scripts/verify-deployment.js",
     "node": "npx hardhat node"
   },
   "keywords": [
@@ -48,7 +50,12 @@
     "typescript": ">=4.5.0"
   },
   "dependencies": {
-    "dotenv": "^16.3.1"
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.22.1",
+    "jsonwebtoken": "^9.0.3",
+    "redis": "^5.12.1",
+    "stellar-sdk": "^10.4.1"
   },
   "engines": {
     "node": ">=16.0.0"

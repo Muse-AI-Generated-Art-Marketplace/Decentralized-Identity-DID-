@@ -3,9 +3,11 @@ const Joi = require('joi');
 const ContractService = require('../services/contractService');
 const { authMiddleware, logger } = require('../middleware');
 const { validateEndpoint, sanitizeParams } = require('../middleware/inputValidation');
+const RBACMiddleware = require('../middleware/rbacMiddleware');
 
 const router = express.Router();
 const contractService = new ContractService();
+const rbacMiddleware = new RBACMiddleware();
 
 // Validation schemas
 const deployContractSchema = Joi.object({
@@ -49,6 +51,7 @@ const issueCredentialSchema = Joi.object({
  *   post:
  *     summary: Deploy DID registry contract
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
@@ -68,34 +71,38 @@ const issueCredentialSchema = Joi.object({
  *       500:
  *         description: Server error
  */
-router.post('/deploy', async (req, res, next) => {
-  // ... (implementation remains the same)
-  try {
-    const { error, value } = deployContractSchema.validate(req.body);
-    
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        details: error.details.map(d => d.message)
-      });
-    }
+router.post('/deploy', 
+  rbacMiddleware.authenticate(),
+  rbacMiddleware.requirePermission('contract.deploy'),
+  rbacMiddleware.auditLog('contract_deploy'),
+  async (req, res, next) => {
+    try {
+      const { error, value } = deployContractSchema.validate(req.body);
+      
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation error',
+          details: error.details.map(d => d.message)
+        });
+      }
 
-    const { deployerSecret } = value;
-    
-    logger.info('Deploying DID registry contract');
-    
-    const result = await contractService.deployContract(deployerSecret);
-    
-    res.status(201).json({
-      success: true,
-      data: result,
-      message: 'Contract deployed successfully'
-    });
-  } catch (error) {
-    next(error);
+      const { deployerSecret } = value;
+      
+      logger.info('Deploying DID registry contract', { userId: req.userId });
+      
+      const result = await contractService.deployContract(deployerSecret);
+      
+      res.status(201).json({
+        success: true,
+        data: result,
+        message: 'Contract deployed successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * @openapi
@@ -103,6 +110,7 @@ router.post('/deploy', async (req, res, next) => {
  *   post:
  *     summary: Register a new DID on the blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
@@ -123,28 +131,34 @@ router.post('/deploy', async (req, res, next) => {
  *       201:
  *         description: DID registered successfully
  */
-router.post('/register-did', validateEndpoint('registerDID'), async (req, res, next) => {
-  try {
-    const { did, publicKey, serviceEndpoint, signerSecret } = req.body;
-    
-    logger.info('Registering DID on blockchain', { did });
-    
-    const result = await contractService.registerDID(
-      did,
-      publicKey,
-      serviceEndpoint,
-      signerSecret
-    );
-    
-    res.status(201).json({
-      success: true,
-      data: result,
-      message: 'DID registered successfully'
-    });
-  } catch (error) {
-    next(error);
+router.post('/register-did', 
+  rbacMiddleware.authenticate(),
+  rbacMiddleware.requirePermission('did.create'),
+  rbacMiddleware.auditLog('did_register'),
+  validateEndpoint('registerDID'),
+  async (req, res, next) => {
+    try {
+      const { did, publicKey, serviceEndpoint, signerSecret } = req.body;
+      
+      logger.info('Registering DID on blockchain', { did, userId: req.userId });
+      
+      const result = await contractService.registerDID(
+        did,
+        publicKey,
+        serviceEndpoint,
+        signerSecret
+      );
+      
+      res.status(201).json({
+        success: true,
+        data: result,
+        message: 'DID registered successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * @openapi
@@ -152,37 +166,43 @@ router.post('/register-did', validateEndpoint('registerDID'), async (req, res, n
  *   put:
  *     summary: Update DID document on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: DID updated successfully
  */
-router.put('/update-did', async (req, res, next) => {
-  try {
-    const { error, value } = updateDIDSchema.validate(req.body);
-    
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        details: error.details.map(d => d.message)
-      });
-    }
+router.put('/update-did', 
+  rbacMiddleware.authenticate(),
+  rbacMiddleware.requirePermission('did.update'),
+  rbacMiddleware.auditLog('did_update'),
+  async (req, res, next) => {
+    try {
+      const { error, value } = updateDIDSchema.validate(req.body);
+      
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation error',
+          details: error.details.map(d => d.message)
+        });
+      }
 
-    const { did, updates, signerSecret } = value;
-    
-    logger.info('Updating DID on blockchain', { did });
-    
-    const result = await contractService.updateDID(did, updates, signerSecret);
-    
-    res.json({
-      success: true,
-      data: result,
-      message: 'DID updated successfully'
-    });
-  } catch (error) {
-    next(error);
+      const { did, updates, signerSecret } = value;
+      
+      logger.info('Updating DID on blockchain', { did, userId: req.userId });
+      
+      const result = await contractService.updateDID(did, updates, signerSecret);
+      
+      res.json({
+        success: true,
+        data: result,
+        message: 'DID updated successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * @openapi
@@ -190,37 +210,45 @@ router.put('/update-did', async (req, res, next) => {
  *   post:
  *     summary: Issue verifiable credential on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       201:
  *         description: Credential issued successfully
  */
-router.post('/issue-credential', validateEndpoint('issueCredential'), async (req, res, next) => {
-  try {
-    const { issuerDID, subjectDID, credentialType, claims, signerSecret } = req.body;
-    
-    logger.info('Issuing credential on blockchain', {
-      issuerDID,
-      subjectDID,
-      credentialType
-    });
-    
-    const result = await contractService.issueCredential(
-      issuerDID,
-      subjectDID,
-      credentialType,
-      claims,
-      signerSecret
-    );
-    
-    res.status(201).json({
-      success: true,
-      data: result,
-      message: 'Credential issued successfully'
-    });
-  } catch (error) {
-    next(error);
+router.post('/issue-credential', 
+  rbacMiddleware.authenticate(),
+  rbacMiddleware.requirePermission('credential.issue'),
+  rbacMiddleware.auditLog('credential_issue'),
+  validateEndpoint('issueCredential'),
+  async (req, res, next) => {
+    try {
+      const { issuerDID, subjectDID, credentialType, claims, signerSecret } = req.body;
+      
+      logger.info('Issuing credential on blockchain', {
+        issuerDID,
+        subjectDID,
+        credentialType,
+        userId: req.userId
+      });
+      
+      const result = await contractService.issueCredential(
+        issuerDID,
+        subjectDID,
+        credentialType,
+        claims,
+        signerSecret
+      );
+      
+      res.status(201).json({
+        success: true,
+        data: result,
+        message: 'Credential issued successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * @openapi
@@ -228,17 +256,23 @@ router.post('/issue-credential', validateEndpoint('issueCredential'), async (req
  *   post:
  *     summary: Revoke credential on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Credential revoked successfully
  */
-router.post('/revoke-credential', validateEndpoint('revokeCredential'), async (req, res, next) => {
-  try {
-    const { credentialId, signerSecret } = req.body;
-    
-    logger.info('Revoking credential on blockchain', { credentialId });
-    
-    const result = await contractService.revokeCredential(credentialId, signerSecret);
+router.post('/revoke-credential', 
+  rbacMiddleware.authenticate(),
+  rbacMiddleware.requirePermission('credential.revoke'),
+  rbacMiddleware.auditLog('credential_revoke'),
+  validateEndpoint('revokeCredential'),
+  async (req, res, next) => {
+    try {
+      const { credentialId, signerSecret } = req.body;
+      
+      logger.info('Revoking credential on blockchain', { credentialId, userId: req.userId });
+      
+      const result = await contractService.revokeCredential(credentialId, signerSecret);
     
     res.json({
       success: true,
@@ -256,6 +290,7 @@ router.post('/revoke-credential', validateEndpoint('revokeCredential'), async (r
  *   get:
  *     summary: Get DID document from blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: did
@@ -307,6 +342,7 @@ router.get('/did/:did', sanitizeParams, async (req, res, next) => {
  *   get:
  *     summary: Get credential from blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: credentialId
@@ -348,6 +384,7 @@ router.get('/credential/:credentialId', sanitizeParams, async (req, res, next) =
  *   get:
  *     summary: Get all DIDs for an owner
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: publicKey
@@ -391,6 +428,7 @@ router.get('/owner-dids/:publicKey', async (req, res, next) => {
  *   post:
  *     summary: Verify credential on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Credential verified successfully
@@ -421,6 +459,7 @@ router.post('/verify-credential', validateEndpoint('verifyCredential'), async (r
  *   get:
  *     summary: Get contract information
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Contract information retrieved successfully
@@ -447,6 +486,7 @@ router.get('/info', async (req, res, next) => {
  *   post:
  *     summary: Create new Stellar account
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       201:
  *         description: Account created successfully
@@ -473,6 +513,7 @@ router.post('/create-account', async (req, res, next) => {
  *   post:
  *     summary: Fund testnet account
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Account funded successfully
@@ -501,6 +542,7 @@ router.post('/fund-account', validateEndpoint('fundAccount'), async (req, res, n
  *   get:
  *     summary: Get account information
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: publicKey

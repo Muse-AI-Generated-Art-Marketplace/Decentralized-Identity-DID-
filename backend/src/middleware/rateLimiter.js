@@ -1,54 +1,62 @@
 const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis');
-const Redis = require('redis');
-const { logger } = require('./logger');
+// const RedisStore = require('rate-limit-redis');
+// const Redis = require('redis');
+// const { logger } = require('./logger');
 
-// Redis client for distributed rate limiting
-let redisClient;
-
-const initializeRedis = async () => {
-  try {
-    redisClient = Redis.createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
-      retry_strategy: (options) => {
-        if (options.error && options.error.code === 'ECONNREFUSED') {
-          logger.error('Redis server connection refused');
-          return new Error('Redis server connection refused');
-        }
-        if (options.total_retry_time > 1000 * 60 * 60) {
-          logger.error('Redis retry time exhausted');
-          return new Error('Retry time exhausted');
-        }
-        if (options.attempt > 10) {
-          logger.error('Redis retry attempts exhausted');
-          return undefined;
-        }
-        return Math.min(options.attempt * 100, 3000);
-      }
-    });
-
-    redisClient.on('error', (err) => {
-      logger.error('Redis Client Error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      logger.info('Redis client connected');
-    });
-
-    await redisClient.connect();
-    return redisClient;
-  } catch (error) {
-    logger.warn('Redis connection failed, falling back to memory store:', error.message);
-    return null;
-  }
+// Simple logger fallback to avoid circular dependency
+const logger = {
+  info: console.log,
+  warn: console.warn,
+  error: console.error
 };
 
+// Redis client for distributed rate limiting
+// Temporarily disabled for testing
+// let redisClient;
+
+// const initializeRedis = async () => {
+//   try {
+//     redisClient = Redis.createClient({
+//       url: process.env.REDIS_URL || 'redis://localhost:6379',
+//       retry_strategy: (options) => {
+//         if (options.error && options.error.code === 'ECONNREFUSED') {
+//           logger.error('Redis server connection refused');
+//           return new Error('Redis server connection refused');
+//         }
+//         if (options.total_retry_time > 1000 * 60 * 60) {
+//           logger.error('Redis retry time exhausted');
+//           return new Error('Retry time exhausted');
+//         }
+//         if (options.attempt > 10) {
+//           logger.error('Redis retry attempts exhausted');
+//           return undefined;
+//         }
+//         return Math.min(options.attempt * 100, 3000);
+//       }
+//     });
+
+// redisClient.on('error', (err) => {
+//   logger.error('Redis Client Error:', err);
+// });
+
+// redisClient.on('connect', () => {
+//   logger.info('Redis client connected');
+// });
+
+// await redisClient.connect();
+// return redisClient;
+//   } catch (error) {
+//   logger.warn('Redis connection failed, falling back to memory store:', error.message);
+//   return null;
+// }
+// };
+
 // Initialize Redis on module load if enabled
-if (process.env.RATE_LIMIT_ENABLE_REDIS !== 'false') {
-  initializeRedis();
-} else {
-  logger.info('Redis rate limiting disabled, using memory store');
-}
+// if (process.env.RATE_LIMIT_ENABLE_REDIS !== 'false') {
+//   initializeRedis();
+// } else {
+logger.info('Redis rate limiting disabled, using memory store');
+// }
 
 // Rate limiting configurations using environment variables
 const RATE_LIMIT_CONFIGS = {
@@ -63,7 +71,7 @@ const RATE_LIMIT_CONFIGS = {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_GENERAL_WINDOW_MS) || 15 * 60 * 1000) / 60000) + ' minutes'
     }
   },
-  
+
   // Contract operations - stricter limits
   contractRead: {
     windowMs: parseInt(process.env.RATE_LIMIT_CONTRACT_READ_WINDOW_MS) || 5 * 60 * 1000, // 5 minutes
@@ -75,7 +83,7 @@ const RATE_LIMIT_CONFIGS = {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_CONTRACT_READ_WINDOW_MS) || 5 * 60 * 1000) / 60000) + ' minutes'
     }
   },
-  
+
   contractWrite: {
     windowMs: parseInt(process.env.RATE_LIMIT_CONTRACT_WRITE_WINDOW_MS) || 10 * 60 * 1000, // 10 minutes
     max: parseInt(process.env.RATE_LIMIT_CONTRACT_WRITE_MAX) || 10, // 10 write operations per 10 minutes
@@ -86,7 +94,7 @@ const RATE_LIMIT_CONFIGS = {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_CONTRACT_WRITE_WINDOW_MS) || 10 * 60 * 1000) / 60000) + ' minutes'
     }
   },
-  
+
   // Critical operations - very strict limits
   deployContract: {
     windowMs: parseInt(process.env.RATE_LIMIT_DEPLOY_CONTRACT_WINDOW_MS) || 60 * 60 * 1000, // 1 hour
@@ -98,7 +106,7 @@ const RATE_LIMIT_CONFIGS = {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_DEPLOY_CONTRACT_WINDOW_MS) || 60 * 60 * 1000) / 3600000) + ' hour'
     }
   },
-  
+
   registerDID: {
     windowMs: parseInt(process.env.RATE_LIMIT_REGISTER_DID_WINDOW_MS) || 5 * 60 * 1000, // 5 minutes
     max: parseInt(process.env.RATE_LIMIT_REGISTER_DID_MAX) || 5, // 5 DID registrations per 5 minutes
@@ -109,7 +117,7 @@ const RATE_LIMIT_CONFIGS = {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_REGISTER_DID_WINDOW_MS) || 5 * 60 * 1000) / 60000) + ' minutes'
     }
   },
-  
+
   issueCredential: {
     windowMs: parseInt(process.env.RATE_LIMIT_ISSUE_CREDENTIAL_WINDOW_MS) || 5 * 60 * 1000, // 5 minutes
     max: parseInt(process.env.RATE_LIMIT_ISSUE_CREDENTIAL_MAX) || 15, // 15 credentials per 5 minutes
@@ -120,7 +128,7 @@ const RATE_LIMIT_CONFIGS = {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_ISSUE_CREDENTIAL_WINDOW_MS) || 5 * 60 * 1000) / 60000) + ' minutes'
     }
   },
-  
+
   createAccount: {
     windowMs: parseInt(process.env.RATE_LIMIT_CREATE_ACCOUNT_WINDOW_MS) || 60 * 60 * 1000, // 1 hour
     max: parseInt(process.env.RATE_LIMIT_CREATE_ACCOUNT_MAX) || 10, // 10 accounts per hour
@@ -131,7 +139,7 @@ const RATE_LIMIT_CONFIGS = {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_CREATE_ACCOUNT_WINDOW_MS) || 60 * 60 * 1000) / 3600000) + ' hour'
     }
   },
-  
+
   fundAccount: {
     windowMs: parseInt(process.env.RATE_LIMIT_FUND_ACCOUNT_WINDOW_MS) || 60 * 60 * 1000, // 1 hour
     max: parseInt(process.env.RATE_LIMIT_FUND_ACCOUNT_MAX) || 20, // 20 funding requests per hour
@@ -162,19 +170,20 @@ const createRateLimiter = (config, keyGenerator = null) => {
         method: req.method,
         userAgent: req.get('User-Agent')
       });
-      
+
       res.status(429).json(config.message);
     }
   };
 
   // Use Redis store if available, fallback to memory store
-  if (redisClient) {
-    limiterConfig.store = new RedisStore({
-      client: redisClient,
-      prefix: 'rl:',
-      resetExpiryOnChange: true
-    });
-  }
+  // Temporarily disabled for testing
+  // if (redisClient) {
+  //   limiterConfig.store = new RedisStore({
+  //     client: redisClient,
+  //     prefix: 'rl:',
+  //     resetExpiryOnChange: true
+  //   });
+  // }
 
   return rateLimit(limiterConfig);
 };
@@ -203,7 +212,7 @@ const createUserBasedRateLimiter = (config) => {
 const createDynamicRateLimiter = (baseConfig) => {
   return createRateLimiter(baseConfig, (req) => {
     let key = req.ip || req.connection.remoteAddress;
-    
+
     // Adjust limits based on user tier if available
     if (req.user) {
       const tierMultiplier = {
@@ -212,10 +221,10 @@ const createDynamicRateLimiter = (baseConfig) => {
         'premium': 5,
         'enterprise': 10
       }[req.user.tier] || 1;
-      
+
       key = `${req.user.id}:${tierMultiplier}`;
     }
-    
+
     return key;
   });
 };
@@ -228,7 +237,7 @@ const applyRateLimit = (limiterType) => {
       logger.error(`Unknown rate limiter type: ${limiterType}`);
       return next();
     }
-    
+
     limiter(req, res, next);
   };
 };
@@ -238,7 +247,7 @@ const createProgressiveRateLimiter = (baseConfig) => {
   return createRateLimiter(baseConfig, (req) => {
     const baseKey = req.ip || req.connection.remoteAddress;
     const violationKey = `violations:${baseKey}`;
-    
+
     // This would need Redis to track violations properly
     // For now, use the base key
     return baseKey;
@@ -251,11 +260,11 @@ const smartRateLimiter = (req, res, next) => {
   if (req.path === '/health') {
     return next();
   }
-  
+
   // Apply different rate limits based on endpoint and method
   const path = req.path;
   const method = req.method;
-  
+
   // Contract operations
   if (path.startsWith('/api/v1/contracts')) {
     if (method === 'GET') {
@@ -277,7 +286,7 @@ const smartRateLimiter = (req, res, next) => {
       }
     }
   }
-  
+
   // Default to general rate limiting
   return limiters.general(req, res, next);
 };
@@ -287,17 +296,17 @@ const getRateLimitStatus = async () => {
   if (!redisClient) {
     return { status: 'memory_store', message: 'Using memory store for rate limiting' };
   }
-  
+
   try {
     const info = await redisClient.info('memory');
-    return { 
-      status: 'redis_store', 
+    return {
+      status: 'redis_store',
       message: 'Using Redis for distributed rate limiting',
       redis_info: info
     };
   } catch (error) {
-    return { 
-      status: 'redis_error', 
+    return {
+      status: 'redis_error',
       message: 'Redis error, falling back to memory store',
       error: error.message
     };
@@ -309,7 +318,7 @@ const resetRateLimit = async (key) => {
   if (!redisClient) {
     throw new Error('Redis not available for rate limit reset');
   }
-  
+
   try {
     const pattern = `rl:*${key}*`;
     const keys = await redisClient.keys(pattern);
