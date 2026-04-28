@@ -19,6 +19,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Badge,
 } from "@mui/material";
 import {
   AccountBalanceWallet,
@@ -26,6 +27,8 @@ import {
   Brightness7,
   Menu as MenuIcon,
   QrCodeScanner,
+  Circle,
+  Logout,
 } from "@mui/icons-material";
 import { useWallet } from "../contexts/WalletContext";
 import { useThemeMode } from "../contexts/ThemeContext";
@@ -35,7 +38,7 @@ const DRAWER_WIDTH = 260;
 
 const Navbar = () => {
   const { t } = useTranslation();
-  const { wallet, isConnected } = useWallet();
+  const { wallet, isConnected, disconnectWallet } = useWallet();
   const { mode, toggleTheme } = useThemeMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -56,6 +59,14 @@ const Navbar = () => {
     setDrawerOpen(!drawerOpen);
   };
 
+  const handleDisconnect = async () => {
+    try {
+      await disconnectWallet();
+    } catch (error) {
+      console.error('Disconnect error:', error);
+    }
+  };
+
   const drawerContent = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
       <Typography variant="h6" sx={{ my: 2 }}>
@@ -74,18 +85,92 @@ const Navbar = () => {
       <Divider />
       <Box sx={{ p: 2 }}>
         <LanguageSelector />
-        <Chip
-          icon={<AccountBalanceWallet />}
-          color={isConnected ? "success" : "default"}
-          label={
-            isConnected
-              ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
-              : "No wallet"
-          }
-          variant={isConnected ? "filled" : "outlined"}
-          size="small"
-          sx={{ mt: 1 }}
-        />
+        {/* Mobile Wallet Status Indicator */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            mt: 2,
+            p: 1.5,
+            borderRadius: 2,
+            backgroundColor: isConnected 
+              ? 'rgba(76, 175, 80, 0.15)' 
+              : 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid',
+            borderColor: isConnected 
+              ? 'rgba(76, 175, 80, 0.4)' 
+              : 'rgba(255, 255, 255, 0.2)',
+          }}
+        >
+          <Badge
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            badgeContent={
+              <Circle
+                sx={{
+                  fontSize: 8,
+                  color: isConnected ? '#4caf50' : '#f44336',
+                  backgroundColor: isConnected ? '#4caf50' : '#f44336',
+                  borderRadius: '50%',
+                  border: '1.5px solid',
+                  borderColor: 'background.default',
+                }}
+              />
+            }
+          >
+            <AccountBalanceWallet 
+              sx={{ 
+                color: isConnected ? 'success.main' : 'text.secondary',
+                fontSize: 28,
+              }} 
+            />
+          </Badge>
+          
+          <Box sx={{ flex: 1, textAlign: 'left' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 600,
+                color: isConnected ? 'success.main' : 'text.secondary',
+              }}
+            >
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: isConnected ? 'text.primary' : 'text.disabled',
+                display: 'block',
+              }}
+            >
+              {isConnected 
+                ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
+                : 'No wallet connected'}
+            </Typography>
+          </Box>
+          
+          {isConnected && (
+            <Tooltip title="Disconnect wallet">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  handleDrawerToggle();
+                  handleDisconnect();
+                }}
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'error.main',
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  },
+                }}
+              >
+                <Logout sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
     </Box>
   );
@@ -190,17 +275,93 @@ const Navbar = () => {
             </Tooltip>
 
             {!isMobile && (
-              <Chip
-                icon={<AccountBalanceWallet />}
-                color={isConnected ? "success" : "default"}
-                label={
-                  isConnected
-                    ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
-                    : "No wallet"
-                }
-                variant={isConnected ? "filled" : "outlined"}
-                size="small"
-              />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 2,
+                  backgroundColor: isConnected 
+                    ? 'rgba(76, 175, 80, 0.15)' 
+                    : 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid',
+                  borderColor: isConnected 
+                    ? 'rgba(76, 175, 80, 0.4)' 
+                    : 'rgba(255, 255, 255, 0.2)',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                {/* Connection Status Indicator */}
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={
+                    <Circle
+                      sx={{
+                        fontSize: 10,
+                        color: isConnected ? '#4caf50' : '#f44336',
+                        backgroundColor: isConnected ? '#4caf50' : '#f44336',
+                        borderRadius: '50%',
+                        border: '2px solid',
+                        borderColor: 'background.paper',
+                      }}
+                    />
+                  }
+                >
+                  <AccountBalanceWallet 
+                    sx={{ 
+                      color: isConnected ? 'success.main' : 'text.secondary',
+                      fontSize: 24,
+                    }} 
+                  />
+                </Badge>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: isConnected ? 'success.main' : 'text.secondary',
+                      fontSize: '0.7rem',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: isConnected ? 'text.primary' : 'text.disabled',
+                      fontSize: '0.65rem',
+                    }}
+                  >
+                    {isConnected 
+                      ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
+                      : 'No wallet'}
+                  </Typography>
+                </Box>
+                
+                {isConnected && (
+                  <Tooltip title="Disconnect wallet">
+                    <IconButton
+                      size="small"
+                      onClick={handleDisconnect}
+                      sx={{
+                        ml: 0.5,
+                        color: 'text.secondary',
+                        '&:hover': {
+                          color: 'error.main',
+                          backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        },
+                      }}
+                    >
+                      <Logout sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             )}
           </Stack>
         </Toolbar>
