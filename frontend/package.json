@@ -10,7 +10,7 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
-    "axios": "^1.4.0",
+    "axios": "^1.6.0",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.263.1",
     "qrcode": "^1.5.4",
@@ -64,7 +64,7 @@
     "image-minimizer-webpack-plugin": "^4.0.2",
     "imagemin": "^8.0.1",
     "imagemin-webp": "^7.0.0",
-    "imagemin-mozjpeg": "^10.0.1",
+    "imagemin-mozjpeg": "^10.0.0",
     "imagemin-pngquant": "^9.0.2"
   },
   "proxy": "http://localhost:3001"

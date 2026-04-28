@@ -32,7 +32,7 @@ StellarSDK.Network.useTestNetwork();
 if (process.env.STELLAR_NETWORK === "PUBLIC") {
   StellarSDK.Network.usePublicNetwork();
 }
-const redisClient = require("./config/redis"); // or wherever it is
+const redisClient = require("./config/redis"); 
 app.set("redisClient", redisClient);
 
 // Routes
