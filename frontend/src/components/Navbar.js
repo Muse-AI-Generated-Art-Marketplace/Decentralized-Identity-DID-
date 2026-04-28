@@ -44,6 +44,7 @@ const Navbar = () => {
   const navItems = [
     { label: t("navigation.dashboard"), to: "/" },
     { label: t("navigation.credentials"), to: "/credentials" },
+    { label: "Analytics", to: "/analytics" },
     { label: t("navigation.createDid"), to: "/create-did" },
     { label: t("navigation.resolveDid"), to: "/resolve-did" },
     { label: "Verify", to: "/verify-credential" },
@@ -174,7 +175,7 @@ const Navbar = () => {
           {/* Right actions */}
           <Stack direction="row" spacing={1} alignItems="center">
             <LanguageSelector />
-            
+
             <Tooltip
               title={`Switch to ${mode === "light" ? "dark" : "light"} mode`}
             >

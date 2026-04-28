@@ -136,14 +136,19 @@ router.post('/contracts/sign-transaction', async (req, res) => {
 });
 
 // API sub-routes
-router.use('/auth', require('./auth'));
-router.use('/bridge', require('./bridge'));
-router.use('/contracts', require('./contracts'));
-router.use('/credentials', require('./credentials'));
-router.use('/did', require('./did'));
-router.use('/api-keys', require('./apiKeys'));
-router.use('/monitoring', require('./monitoring'));
-router.use('/qr', require('./qr'));
-router.use('/jobs', require('./jobs'));
+// router.use('/auth', require('./auth'));
+// router.use('/analytics', require('./analytics'));
+// router.use('/bridge', require('./bridge')); // Temporarily disabled due to ContractService issue
+// router.use('/contracts', require('./contracts')); // Temporarily disabled due to contractService issue
+// router.use('/credentials', require('./credentials'));
+// router.use('/did', require('./did'));
+// router.use('/api-keys', require('./apiKeys'));
+// router.use('/monitoring', require('./monitoring'));
+// router.use('/qr', require('./qr'));
+
+// Test route
+router.get('/analytics/test', (req, res) => {
+  res.json({ message: 'V1 analytics test route working' });
+});
 
 module.exports = router;

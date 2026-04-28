@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const CrossChainService = require('../services/crossChainService');
-const { authMiddleware } = require('../middleware');
-const logger = require('../utils/logger');
+const CrossChainService = require('../../services/crossChainService');
+const { authMiddleware } = require('../../middleware');
+const logger = require('../../utils/logger');
 
 const crossChainService = new CrossChainService();
 
@@ -59,7 +59,7 @@ router.post('/did', authMiddleware, async (req, res) => {
     }
 
     const receipt = await crossChainService.bridgeDIDToEthereum(did, ownerAddress);
-    
+
     res.json({
       success: true,
       message: 'DID bridged successfully',
@@ -116,7 +116,7 @@ router.post('/credential', authMiddleware, async (req, res) => {
     }
 
     const receipt = await crossChainService.bridgeCredentialToEthereum(credentialId, dataHash);
-    
+
     res.json({
       success: true,
       message: 'Credential bridged successfully',
@@ -158,9 +158,9 @@ router.post('/credential', authMiddleware, async (req, res) => {
 router.get('/status/:did', authMiddleware, async (req, res) => {
   try {
     const { did } = req.params;
-    
+
     const status = await crossChainService.verifyCrossChainState(did);
-    
+
     res.json({
       success: true,
       status

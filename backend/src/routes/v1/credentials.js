@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const credentialService = require('../services/credentialService');
-const { logger } = require('../middleware');
+const credentialService = require('../../services/credentialService');
+const { logger } = require('../../middleware');
 const { body, query, validationResult } = require('express-validator');
 
 // Middleware to handle validation errors
@@ -212,7 +212,7 @@ router.get('/:id',
     try {
       const { id } = req.params;
       const credential = await credentialService.getCredential(id);
-      
+
       if (!credential) {
         return res.status(404).json({
           error: 'Credential not found',
@@ -282,7 +282,7 @@ router.get('/count',
   async (req, res) => {
     try {
       const { issuer, subject, credentialType, revoked, expired } = req.query;
-      
+
       const filters = {};
       if (issuer) filters.issuer = issuer;
       if (subject) filters.subject = subject;
@@ -291,7 +291,7 @@ router.get('/count',
       if (expired !== undefined) filters.expired = expired === 'true';
 
       const count = await credentialService.getCredentialCount(filters);
-      
+
       res.json({ count });
     } catch (error) {
       logger.error('Error fetching credential count:', error);
@@ -349,9 +349,9 @@ router.get('/search',
   async (req, res) => {
     try {
       const { q: query, limit = 20 } = req.query;
-      
+
       const results = await credentialService.searchCredentials(query, parseInt(limit));
-      
+
       res.json({
         credentials: results,
         total: results.length,
@@ -423,7 +423,7 @@ router.post('/issue',
     try {
       const credentialData = req.body;
       const credential = await credentialService.issueCredential(credentialData);
-      
+
       res.status(201).json({
         message: 'Credential issued successfully',
         credential
@@ -487,7 +487,7 @@ router.post('/verify',
   async (req, res) => {
     try {
       const { credentialId, credential } = req.body;
-      
+
       let result;
       if (credential) {
         // Verify provided credential data
@@ -503,7 +503,7 @@ router.post('/verify',
         }
         result = await credentialService.verifyCredential(storedCredential);
       }
-      
+
       res.json({
         credentialId,
         verifiedAt: new Date().toISOString(),
@@ -558,7 +558,7 @@ router.post('/revoke',
     try {
       const { credentialId } = req.body;
       const revokedCredential = await credentialService.revokeCredential(credentialId);
-      
+
       res.json({
         message: 'Credential revoked successfully',
         credential: revokedCredential

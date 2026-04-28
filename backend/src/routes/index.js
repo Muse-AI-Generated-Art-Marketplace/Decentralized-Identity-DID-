@@ -3,6 +3,7 @@ const router = express.Router();
 const templateService = require('../services/templateService');
 const webhookService = require('../services/webhookService');
 const Webhook = require('../models/Webhook'); // For basic CRUD without a service wrapper for all operations
+const analyticsService = require('../services/analyticsService');
 
 const v1Routes = require('./v1');
 
@@ -18,29 +19,35 @@ const v1Routes = require('./v1');
 // API Versioning Strategy
 router.use(v1Routes);
 
-/**
- * @openapi
- * /:
- *   get:
- *     summary: API root information
- *     tags: [Info]
- *     responses:
- *       200:
- *         description: Basic API info
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 versions:
- *                   type: array
- *                   items:
- *                     type: string
- *                 current_version:
- *                   type: string
- */
+// Analytics routes (temporarily at root for testing)
+router.get('/analytics/dashboard', async (req, res) => {
+  try {
+    const { timeRange = '30d' } = req.query;
+    const validTimeRanges = ['7d', '30d', '90d', '1y'];
+    if (!validTimeRanges.includes(timeRange)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid timeRange. Must be one of: 7d, 30d, 90d, 1y'
+      });
+    }
+    const analytics = await analyticsService.getDashboardAnalytics(timeRange);
+    res.json({
+      success: true,
+      data: analytics,
+      meta: {
+        timeRange,
+        generatedAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Fallback for missing versions or root
 router.get('/', (req, res) => {
   res.json({
