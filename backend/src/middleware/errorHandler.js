@@ -1,5 +1,8 @@
 const logger = require('./logger');
 const { formatErrorResponse } = require('../utils/errorMessages');
+const { trace, SpanStatusCode } = require('@opentelemetry/api');
+const monitoringService = require('../services/monitoringService');
+const { metricsService } = require('../services/metricsService');
 
 /**
  * Global Error Handling Middleware
@@ -10,17 +13,44 @@ const { formatErrorResponse } = require('../utils/errorMessages');
  * @param {Function} next - Express next function
  */
 const errorHandler = (err, req, res, next) => {
-  // Log the full error for internal debugging
-  logger.error(`${err.name}: ${err.message}\nStack: ${err.stack}`);
-
   // Determine error status code
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  
+  const resolvedStatusCode = err.status || statusCode;
+  const route = `${req.baseUrl || ''}${req.route?.path || req.path || req.originalUrl || 'unknown'}`;
+  const activeSpan = trace.getActiveSpan();
+
+  if (activeSpan) {
+    activeSpan.recordException(err);
+    activeSpan.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: err.message,
+    });
+  }
+
+  const errorEvent = {
+    correlationId: req.correlationId,
+    errorName: err.name || 'Error',
+    message: err.message,
+    stack: err.stack,
+    statusCode: resolvedStatusCode,
+    method: req.method,
+    route,
+    path: req.originalUrl,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (!req.errorMetricRecorded) {
+    metricsService.recordError(errorEvent.errorName, route);
+  }
+  monitoringService.captureApplicationError(errorEvent);
+  logger.error('Unhandled request error', { error: err, ...errorEvent });
+
   // Format the user-friendly error response
   const errorResponse = formatErrorResponse(err, req);
+  errorResponse.error.correlationId = req.correlationId;
 
   // Send the response
-  res.status(err.status || statusCode).json(errorResponse);
+  res.status(resolvedStatusCode).json(errorResponse);
 };
 
 module.exports = errorHandler;
