@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { logger, errorHandler, requestContextMiddleware } = require('./middleware');
 const MetricsMiddleware = require('./middleware/metricsMiddleware');
 require('dotenv').config();
 
@@ -12,6 +13,9 @@ const app = express();
 
 // Initialize metrics middleware
 const metricsMiddleware = new MetricsMiddleware();
+
+// Request context must run before anything that logs
+app.use(requestContextMiddleware);
 
 // Metrics tracking middleware (must be before other middleware)
 app.use(metricsMiddleware.requestTracker());
@@ -70,33 +74,36 @@ app.get('/health', metricsMiddleware.healthWithMetrics());
 app.get('/metrics', metricsMiddleware.metricsEndpoint());
 
 // API routes
-app.use('/api/v1', require('./routes'));
+app.use('/api', require('./routes'));
 
 // Error tracking middleware
 app.use(metricsMiddleware.errorTracker());
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-  });
-});
+app.use(errorHandler);
 
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
-    error: 'Not found',
-    message: 'The requested resource was not found',
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      userMessage: 'The requested resource was not found.',
+      action: 'Verify the URL and try again.',
+      path: req.originalUrl,
+      timestamp: new Date().toISOString(),
+      correlationId: req.correlationId,
+    }
   });
 });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`CORS origin: ${process.env.FRONTEND_URL}`);
+  logger.info('Server started', {
+    port: PORT,
+    environment: process.env.NODE_ENV,
+    corsOrigin: process.env.FRONTEND_URL,
+  });
 });
 
 module.exports = app;

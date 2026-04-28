@@ -9,6 +9,7 @@ class MonitoringService {
     this.closeStream = null;
     this.alerts = [];
     this.transactionHistory = [];
+    this.applicationErrors = [];
     
     // Configurable thresholds
     this.HIGH_VOLUME_THRESHOLD = 10;
@@ -48,6 +49,10 @@ class MonitoringService {
 
   getAlerts() {
     return this.alerts;
+  }
+
+  getApplicationErrors() {
+    return this.applicationErrors;
   }
 
   handleTransaction(transaction) {
@@ -103,6 +108,17 @@ class MonitoringService {
     // Broadcast via WebSocket
     if (this.wsManager) {
       this.wsManager.broadcast('contract:alert', alert);
+    }
+  }
+
+  captureApplicationError(errorEvent) {
+    this.applicationErrors.unshift(errorEvent);
+    if (this.applicationErrors.length > 100) {
+      this.applicationErrors.pop();
+    }
+
+    if (this.wsManager) {
+      this.wsManager.broadcast('application:error', errorEvent);
     }
   }
 }

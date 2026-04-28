@@ -45,7 +45,16 @@ router.get('/status', (req, res) => {
     success: true,
     active: !!monitoringService.closeStream,
     contractAddress: monitoringService.contractAddress,
-    totalAlerts: monitoringService.alerts.length
+    totalAlerts: monitoringService.alerts.length,
+    totalApplicationErrors: monitoringService.applicationErrors.length
+  });
+});
+
+router.get('/errors', (req, res) => {
+  res.json({
+    success: true,
+    count: monitoringService.applicationErrors.length,
+    errors: monitoringService.getApplicationErrors(),
   });
 });
 
