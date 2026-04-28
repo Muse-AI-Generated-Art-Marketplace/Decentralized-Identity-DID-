@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { validateEndpoint, validateInput, sanitizeQuery, sanitizeParams } = require('../middleware/inputValidation');
 
 // Stellar configuration (server-side only)
 const stellarConfig = {
@@ -9,6 +10,27 @@ const stellarConfig = {
   friendbotUrl: process.env.STELLAR_FRIENDBOT_URL || 'https://friendbot.stellar.org',
 };
 
+// Apply sanitization middleware globally
+router.use(sanitizeQuery);
+router.use(sanitizeParams);
+
+/**
+ * @route   GET /api
+ * @desc    Get API routes info
+ * @access  Public
+ */
+router.get('/', (req, res) => {
+  res.json({ 
+    message: 'API routes works',
+    endpoints: [
+      'POST /contracts/create-account - Create Stellar account',
+      'POST /contracts/fund-account - Fund Stellar account',
+      'GET /contracts/account/:publicKey - Get account balance',
+      'POST /contracts/sign-transaction - Sign transaction'
+    ]
+  });
+});
+
 // Secure account creation
 router.post('/contracts/create-account', async (req, res) => {
   try {
@@ -17,7 +39,7 @@ router.post('/contracts/create-account', async (req, res) => {
     
     const accountData = {
       publicKey: pair.publicKey(),
-      secretKey: pair.secret(), // This will be sent to frontend but should be handled securely
+      secretKey: pair.secret(),
       network: stellarConfig.network,
     };
     
@@ -35,16 +57,9 @@ router.post('/contracts/create-account', async (req, res) => {
 });
 
 // Secure account funding
-router.post('/contracts/fund-account', async (req, res) => {
+router.post('/contracts/fund-account', validateEndpoint('fundAccount'), async (req, res) => {
   try {
     const { publicKey } = req.body;
-    
-    if (!publicKey) {
-      return res.status(400).json({
-        success: false,
-        error: 'Public key is required',
-      });
-    }
     
     // Use Friendbot for testnet funding
     if (stellarConfig.network === 'TESTNET') {
@@ -78,7 +93,7 @@ router.post('/contracts/fund-account', async (req, res) => {
 });
 
 // Secure account balance
-router.get('/contracts/account/:publicKey', async (req, res) => {
+router.get('/contracts/account/:publicKey', validateInput('publicKey', 'params'), async (req, res) => {
   try {
     const { publicKey } = req.params;
     const StellarSdk = require('stellar-sdk');
@@ -103,16 +118,9 @@ router.get('/contracts/account/:publicKey', async (req, res) => {
 });
 
 // Secure transaction signing
-router.post('/contracts/sign-transaction', async (req, res) => {
+router.post('/contracts/sign-transaction', validateEndpoint('signTransaction'), async (req, res) => {
   try {
     const { transactionXDR, secretKey } = req.body;
-    
-    if (!transactionXDR || !secretKey) {
-      return res.status(400).json({
-        success: false,
-        error: 'Transaction XDR and secret key are required',
-      });
-    }
     
     const StellarSdk = require('stellar-sdk');
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
@@ -136,3 +144,4 @@ router.post('/contracts/sign-transaction', async (req, res) => {
 });
 
 module.exports = router;
+
