@@ -32,4 +32,10 @@ const webhookSchema = new mongoose.Schema({
   },
 });
 
+// Active webhooks lookup (most common query when dispatching events)
+webhookSchema.index({ active: 1 });
+
+// Filter by event type (dispatching specific events)
+webhookSchema.index({ events: 1, active: 1 });
+
 module.exports = mongoose.model('Webhook', webhookSchema);

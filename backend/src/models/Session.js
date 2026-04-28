@@ -32,4 +32,7 @@ const sessionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Active sessions by user (auth validation)
+sessionSchema.index({ userId: 1, isValid: 1 });
+
 module.exports = mongoose.model('Session', sessionSchema);

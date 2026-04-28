@@ -43,6 +43,12 @@ apiKeySchema.statics.generateKey = function() {
   return crypto.randomBytes(32).toString('hex');
 };
 
+// Active keys by owner (auth middleware lookup)
+apiKeySchema.index({ owner: 1, status: 1 });
+
+// Expiry cleanup queries
+apiKeySchema.index({ expiresAt: 1 }, { sparse: true });
+
 const ApiKey = mongoose.model('ApiKey', apiKeySchema);
 
 module.exports = ApiKey;
