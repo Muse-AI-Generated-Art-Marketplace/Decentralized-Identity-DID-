@@ -3,8 +3,45 @@ const router = express.Router();
 const qrService = require("../services/qrService");
 
 /**
- * POST /api/v1/qr/generate
- * Accepts a QRPayload body, validates it, and returns a signed token + deep link.
+ * @openapi
+ * tags:
+ *   name: QR
+ *   description: QR code generation and validation
+ */
+
+/**
+ * @openapi
+ * /qr/generate:
+ *   post:
+ *     summary: Generate QR code payload
+ *     tags: [QR]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               payload:
+ *                 type: object
+ *                 description: Data to encode in QR code
+ *     responses:
+ *       200:
+ *         description: QR code generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     token:
+ *                       type: string
+ *                     deepLink:
+ *                       type: string
  */
 router.post("/generate", (req, res) => {
   try {
@@ -21,8 +58,36 @@ router.post("/generate", (req, res) => {
 });
 
 /**
- * POST /api/v1/qr/validate
- * Accepts a { token } body, verifies the JWT, and returns the decoded QRPayload.
+ * @openapi
+ * /qr/validate:
+ *   post:
+ *     summary: Validate QR code token
+ *     tags: [QR]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token]
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: JWT token to validate
+ *     responses:
+ *       200:
+ *         description: Token validated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Invalid or expired token
  */
 router.post("/validate", (req, res) => {
   const { token } = req.body || {};

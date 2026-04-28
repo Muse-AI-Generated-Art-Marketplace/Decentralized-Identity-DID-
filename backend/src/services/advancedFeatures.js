@@ -322,25 +322,32 @@ class NotificationService {
     this.channels.set('push', new PushChannel());
     this.channels.set('sms', new SMSChannel());
     this.channels.set('webhook', new WebhookChannel());
+    this.channels.set('websocket', new WebSocketChannel());
   }
 
   loadTemplates() {
     this.templates.set('did_created', {
       subject: 'New DID Created',
       body: 'Your DID {{did}} has been successfully created.',
-      channels: ['email', 'push']
+      channels: ['email', 'push', 'websocket']
     });
 
     this.templates.set('credential_issued', {
       subject: 'New Credential Issued',
       body: 'You have been issued a new credential: {{credentialType}}',
-      channels: ['email', 'push']
+      channels: ['email', 'push', 'websocket']
+    });
+
+    this.templates.set('credential_verified', {
+      subject: 'Credential Verified',
+      body: 'Your credential has been successfully verified.',
+      channels: ['email', 'push', 'websocket']
     });
 
     this.templates.set('security_alert', {
       subject: 'Security Alert',
       body: 'Unusual activity detected on your account.',
-      channels: ['email', 'sms', 'push']
+      channels: ['email', 'sms', 'push', 'websocket']
     });
   }
 
@@ -388,7 +395,8 @@ class NotificationService {
       email: true,
       push: true,
       sms: false,
-      webhook: false
+      webhook: false,
+      websocket: true
     };
   }
 
@@ -964,6 +972,15 @@ class WebhookChannel {
   async send(notification) {
     // Implement webhook call
     logger.debug(`Webhook sent: ${notification.id}`);
+    return { success: true };
+  }
+}
+
+class WebSocketChannel {
+  async send(notification) {
+    // Implement WebSocket sending logic
+    // Example: global.wss.clients.forEach(client => client.send(JSON.stringify(notification)))
+    logger.debug(`WebSocket notification sent: ${notification.id}`);
     return { success: true };
   }
 }

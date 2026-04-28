@@ -4,8 +4,8 @@ const monitoringService = require('../services/monitoringService');
 const { logger } = require('../middleware');
 
 /**
- * @swagger
- * /api/v1/monitoring/alerts:
+ * @openapi
+ * /monitoring/alerts:
  *   get:
  *     summary: Get contract monitoring alerts
  *     tags: [Monitoring]
@@ -31,8 +31,8 @@ router.get('/alerts', (req, res) => {
 });
 
 /**
- * @swagger
- * /api/v1/monitoring/status:
+ * @openapi
+ * /monitoring/status:
  *   get:
  *     summary: Get monitoring service status
  *     tags: [Monitoring]
@@ -45,7 +45,16 @@ router.get('/status', (req, res) => {
     success: true,
     active: !!monitoringService.closeStream,
     contractAddress: monitoringService.contractAddress,
-    totalAlerts: monitoringService.alerts.length
+    totalAlerts: monitoringService.alerts.length,
+    totalApplicationErrors: monitoringService.applicationErrors.length
+  });
+});
+
+router.get('/errors', (req, res) => {
+  res.json({
+    success: true,
+    count: monitoringService.applicationErrors.length,
+    errors: monitoringService.getApplicationErrors(),
   });
 });
 

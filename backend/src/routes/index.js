@@ -3,11 +3,50 @@ const router = express.Router();
 const templateService = require('../services/templateService');
 const webhookService = require('../services/webhookService');
 const Webhook = require('../models/Webhook'); // For basic CRUD without a service wrapper for all operations
+const analyticsService = require('../services/analyticsService');
 
 const v1Routes = require('./v1');
 
+/**
+ * @openapi
+ * tags:
+ *   name: Templates
+ *   description: Credential template management
+ *   name: Webhooks
+ *   description: Webhook subscriptions and notifications
+ */
+
 // API Versioning Strategy
-router.use('/v1', v1Routes);
+router.use(v1Routes);
+
+// Analytics routes (temporarily at root for testing)
+router.get('/analytics/dashboard', async (req, res) => {
+  try {
+    const { timeRange = '30d' } = req.query;
+    const validTimeRanges = ['7d', '30d', '90d', '1y'];
+    if (!validTimeRanges.includes(timeRange)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid timeRange. Must be one of: 7d, 30d, 90d, 1y'
+      });
+    }
+    const analytics = await analyticsService.getDashboardAnalytics(timeRange);
+    res.json({
+      success: true,
+      data: analytics,
+      meta: {
+        timeRange,
+        generatedAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 // Fallback for missing versions or root
 router.get('/', (req, res) => {
@@ -18,6 +57,35 @@ router.get('/', (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /templates:
+ *   get:
+ *     summary: Get credential templates
+ *     tags: [Templates]
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *         description: Filter by template type
+ *     responses:
+ *       200:
+ *         description: List of credential templates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   claims:
+ *                     type: object
+ */
 // --- Credential Templates ---
 
 router.get('/templates', async (req, res) => {
@@ -29,6 +97,29 @@ router.get('/templates', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /templates:
+ *   post:
+ *     summary: Create a new credential template
+ *     tags: [Templates]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, claims]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               claims:
+ *                 type: object
+ *                 description: Template claims schema
+ *     responses:
+ *       201:
+ *         description: Template created successfully
+ */
 router.post('/templates', async (req, res) => {
   try {
     const template = await templateService.createTemplate(req.body);
@@ -38,6 +129,24 @@ router.post('/templates', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /templates/{id}:
+ *   get:
+ *     summary: Get credential template by ID
+ *     tags: [Templates]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template details
+ *       404:
+ *         description: Template not found
+ */
 router.get('/templates/:id', async (req, res) => {
   try {
     const template = await templateService.getTemplateById(req.params.id);
@@ -47,6 +156,16 @@ router.get('/templates/:id', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /webhooks:
+ *   get:
+ *     summary: List active webhooks
+ *     tags: [Webhooks]
+ *     responses:
+ *       200:
+ *         description: List of webhook subscriptions
+ */
 // --- Webhooks ---
 
 router.get('/webhooks', async (req, res) => {
@@ -58,6 +177,30 @@ router.get('/webhooks', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /webhooks:
+ *   post:
+ *     summary: Create a new webhook
+ *     tags: [Webhooks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *               event:
+ *                 type: string
+ *               active:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Webhook created successfully
+ */
 router.post('/webhooks', async (req, res) => {
   try {
     const webhook = new Webhook(req.body);
@@ -68,6 +211,22 @@ router.post('/webhooks', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /webhooks/{id}:
+ *   delete:
+ *     summary: Deactivate a webhook
+ *     tags: [Webhooks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Webhook deactivated successfully
+ */
 router.delete('/webhooks/:id', async (req, res) => {
   try {
     await Webhook.findByIdAndUpdate(req.params.id, { active: false });

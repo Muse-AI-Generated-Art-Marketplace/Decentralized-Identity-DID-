@@ -18,6 +18,7 @@ import Account from './pages/Account';
 import Scanner from './pages/Scanner';
 import Contracts from './pages/Contracts';
 import VerifyCredential from './pages/VerifyCredential';
+import Analytics from './pages/Analytics';
 
 function AppContent() {
   const { theme, mode } = useThemeMode();
@@ -41,6 +42,7 @@ function AppContent() {
               <Route path="/scanner" element={<Scanner />} />
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/verify-credential" element={<VerifyCredential />} />
+              <Route path="/analytics" element={<Analytics />} />
             </Routes>
           </main>
           <ToastContainer

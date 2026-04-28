@@ -14,10 +14,18 @@ class MetricsMiddleware {
 
   // Start collecting system metrics periodically
   startSystemMetricsCollection() {
+    if (this.systemMetricsInterval) {
+      return;
+    }
+
     // Collect system metrics every 30 seconds
-    setInterval(() => {
+    this.systemMetricsInterval = setInterval(() => {
       this.metricsService.collectSystemMetrics();
     }, 30000);
+
+    if (typeof this.systemMetricsInterval.unref === 'function') {
+      this.systemMetricsInterval.unref();
+    }
   }
 
   // Start collecting database pool metrics periodically
@@ -58,7 +66,7 @@ class MetricsMiddleware {
       const originalEnd = res.end;
       res.end = function (...args) {
         const duration = (Date.now() - startTime) / 1000; // Convert to seconds
-        const route = req.route ? req.route.path : req.path || 'unknown';
+        const route = getRouteLabel(req);
         const method = req.method;
         const statusCode = res.statusCode;
 
@@ -80,7 +88,7 @@ class MetricsMiddleware {
   // Middleware to track errors
   errorTracker() {
     return (err, req, res, next) => {
-      const endpoint = req.route ? req.route.path : req.path || 'unknown';
+      const endpoint = getRouteLabel(req);
       const errorType = err.name || 'UnknownError';
 
       // Record error metric
@@ -92,9 +100,9 @@ class MetricsMiddleware {
 
   // Metrics endpoint for Prometheus
   metricsEndpoint() {
-    return (req, res) => {
+    return async (req, res) => {
       res.set('Content-Type', this.metricsService.register.contentType);
-      res.end(this.metricsService.getMetrics());
+      res.end(await this.metricsService.getMetrics());
     };
   }
 
@@ -114,13 +122,13 @@ class MetricsMiddleware {
           external: memUsage.external
         },
         metrics: {
-          activeConnections: this.metricsService.activeConnections.get(),
-          didRegistrySize: this.metricsService.didRegistrySize.get(),
-          cacheHitRate: this.metricsService.cacheHitRate.get(),
-          databaseConnections: this.metricsService.databaseConnections.get(),
-          queueSize: this.metricsService.queueSize.get(),
-          resourceUtilization: this.metricsService.resourceUtilization.get(),
-          blockchainSyncStatus: this.metricsService.blockchainSyncStatus.get()
+          activeConnections: 'available via /metrics',
+          didRegistrySize: 'available via /metrics',
+          cacheHitRate: 'available via /metrics',
+          databaseConnections: 'available via /metrics',
+          queueSize: 'available via /metrics',
+          resourceUtilization: 'available via /metrics',
+          blockchainSyncStatus: 'available via /metrics'
         },
         performance: {
           averageResponseTime: this.getAverageResponseTime(),

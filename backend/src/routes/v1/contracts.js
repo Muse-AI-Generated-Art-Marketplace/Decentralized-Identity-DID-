@@ -51,6 +51,7 @@ const issueCredentialSchema = Joi.object({
  *   post:
  *     summary: Deploy DID registry contract
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
@@ -109,6 +110,7 @@ router.post('/deploy',
  *   post:
  *     summary: Register a new DID on the blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
@@ -164,6 +166,7 @@ router.post('/register-did',
  *   put:
  *     summary: Update DID document on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: DID updated successfully
@@ -207,6 +210,7 @@ router.put('/update-did',
  *   post:
  *     summary: Issue verifiable credential on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       201:
  *         description: Credential issued successfully
@@ -252,6 +256,7 @@ router.post('/issue-credential',
  *   post:
  *     summary: Revoke credential on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Credential revoked successfully
@@ -285,6 +290,7 @@ router.post('/revoke-credential',
  *   get:
  *     summary: Get DID document from blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: did
@@ -336,6 +342,7 @@ router.get('/did/:did', sanitizeParams, async (req, res, next) => {
  *   get:
  *     summary: Get credential from blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: credentialId
@@ -377,6 +384,7 @@ router.get('/credential/:credentialId', sanitizeParams, async (req, res, next) =
  *   get:
  *     summary: Get all DIDs for an owner
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: publicKey
@@ -420,6 +428,7 @@ router.get('/owner-dids/:publicKey', async (req, res, next) => {
  *   post:
  *     summary: Verify credential on blockchain
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Credential verified successfully
@@ -450,6 +459,7 @@ router.post('/verify-credential', validateEndpoint('verifyCredential'), async (r
  *   get:
  *     summary: Get contract information
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Contract information retrieved successfully
@@ -476,6 +486,7 @@ router.get('/info', async (req, res, next) => {
  *   post:
  *     summary: Create new Stellar account
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       201:
  *         description: Account created successfully
@@ -502,6 +513,7 @@ router.post('/create-account', async (req, res, next) => {
  *   post:
  *     summary: Fund testnet account
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200:
  *         description: Account funded successfully
@@ -530,6 +542,7 @@ router.post('/fund-account', validateEndpoint('fundAccount'), async (req, res, n
  *   get:
  *     summary: Get account information
  *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: publicKey

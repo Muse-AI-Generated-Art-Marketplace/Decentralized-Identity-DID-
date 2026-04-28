@@ -261,8 +261,14 @@ class MetricsService {
 
   // Reset metrics (useful for testing)
   resetMetrics() {
-    this.register.clear();
+    if (typeof this.register.resetMetrics === 'function') {
+      this.register.resetMetrics();
+    }
   }
 }
 
+const metricsService = new MetricsService();
+
 module.exports = MetricsService;
+module.exports.MetricsService = MetricsService;
+module.exports.metricsService = metricsService;
