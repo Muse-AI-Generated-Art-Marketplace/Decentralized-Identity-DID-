@@ -1,11 +1,25 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const StellarService = require('./stellarService');
+const cacheService = require('./cacheService');
 
 class DIDService {
   constructor() {
     this.stellarService = new StellarService();
     this.didMethod = 'stellar';
+  }
+
+  getDidCacheKey(did) {
+    return `did:${did}`;
+  }
+
+  getCredentialVerificationCacheKey(credential) {
+    if (credential && credential.id) {
+      return `credential-verification:${credential.id}`;
+    }
+
+    const fallbackToken = credential?.proof?.jwt || JSON.stringify(credential || '');
+    return `credential-verification:${crypto.createHash('sha256').update(fallbackToken).digest('hex')}`;
   }
 
   /**
@@ -51,13 +65,20 @@ class DIDService {
    */
   async resolveDID(did) {
     try {
+      const cacheKey = this.getDidCacheKey(did);
+      const cached = await cacheService.get(cacheKey);
+
+      if (cached) {
+        return JSON.parse(cached);
+      }
+
       // Parse DID to get Stellar account
       const publicKey = this.extractPublicKeyFromDID(did);
       
       // Get DID document from Stellar
       const didDocument = await this.stellarService.resolveDID(publicKey);
       
-      return {
+      const result = {
         didDocument,
         didDocumentMetadata: {
           created: didDocument.created,
@@ -70,6 +91,14 @@ class DIDService {
           generatedTime: new Date().toISOString()
         }
       };
+
+      await cacheService.set(
+        cacheKey,
+        JSON.stringify(result),
+        Number(process.env.DID_CACHE_TTL || 300)
+      );
+
+      return result;
     } catch (error) {
       throw new Error(`Failed to resolve DID: ${error.message}`);
     }
@@ -98,6 +127,8 @@ class DIDService {
       );
       
       const result = await this.stellarService.submitTransaction(transaction);
+
+      await cacheService.del(this.getDidCacheKey(did));
 
       return {
         didDocument: updatedDocument,
@@ -257,6 +288,13 @@ class DIDService {
    * Verify a verifiable credential
    */
   async verifyCredential(credential) {
+    const cacheKey = this.getCredentialVerificationCacheKey(credential);
+    const cached = await cacheService.get(cacheKey);
+
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
     try {
       if (!credential.proof || !credential.proof.jwt) {
         throw new Error('Credential missing proof');
@@ -275,18 +313,34 @@ class DIDService {
       // Verify the DID exists
       await this.resolveDID(decoded.iss);
 
-      return {
+      const verification = {
         verified: true,
         issuer: decoded.iss,
         subject: decoded.credential.credentialSubject.id,
         issuanceDate: decoded.credential.issuanceDate,
         expirationDate: decoded.credential.expirationDate
       };
+
+      await cacheService.set(
+        cacheKey,
+        JSON.stringify(verification),
+        Number(process.env.CREDENTIAL_CACHE_TTL || 300)
+      );
+
+      return verification;
     } catch (error) {
-      return {
+      const verification = {
         verified: false,
         error: error.message
       };
+
+      await cacheService.set(
+        cacheKey,
+        JSON.stringify(verification),
+        Number(process.env.CREDENTIAL_CACHE_TTL || 60)
+      );
+
+      return verification;
     }
   }
 
