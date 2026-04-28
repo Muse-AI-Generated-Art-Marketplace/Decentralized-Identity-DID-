@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { logger, errorHandler, requestContextMiddleware } = require('./middleware');
 const MetricsMiddleware = require('./middleware/metricsMiddleware');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
 require('dotenv').config();
 
 // Initialize job queue workers
@@ -72,6 +74,9 @@ app.get('/health', metricsMiddleware.healthWithMetrics());
 
 // Prometheus metrics endpoint
 app.get('/metrics', metricsMiddleware.metricsEndpoint());
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API routes
 app.use('/api', require('./routes'));

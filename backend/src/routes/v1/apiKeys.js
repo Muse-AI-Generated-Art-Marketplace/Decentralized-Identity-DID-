@@ -3,8 +3,68 @@ const router = express.Router();
 const apiKeyService = require('../services/apiKeyService');
 
 /**
- * Generate a new API Key
- * POST /api/v1/api-keys
+ * @openapi
+ * tags:
+ *   name: API Keys
+ *   description: API key management for authentication and access control
+ */
+
+/**
+ * @openapi
+ * /api-keys:
+ *   post:
+ *     summary: Generate a new API Key
+ *     tags: [API Keys]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, owner]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name/description of the API key
+ *               owner:
+ *                 type: string
+ *                 description: Owner identifier (e.g., user ID or address)
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of permissions granted
+ *                 default: ['read']
+ *               expiresInDays:
+ *                 type: integer
+ *                 description: Number of days until expiration
+ *                 default: 30
+ *     responses:
+ *       201:
+ *         description: API key created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     key:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     owner:
+ *                       type: string
+ *                     permissions:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
  */
 router.post('/', async (req, res, next) => {
   try {
@@ -20,8 +80,47 @@ router.post('/', async (req, res, next) => {
 });
 
 /**
- * List API Keys for an owner
- * GET /api/v1/api-keys/:owner
+ * @openapi
+ * /api-keys/{owner}:
+ *   get:
+ *     summary: List API Keys for an owner
+ *     tags: [API Keys]
+ *     parameters:
+ *       - in: path
+ *         name: owner
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of API keys for the owner
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       key:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       owner:
+ *                         type: string
+ *                       permissions:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       expiresAt:
+ *                         type: string
+ *                         format: date-time
+ *                       status:
+ *                         type: string
  */
 router.get('/:owner', async (req, res, next) => {
   try {
@@ -37,8 +136,31 @@ router.get('/:owner', async (req, res, next) => {
 });
 
 /**
- * Rotate an API Key
- * PUT /api/v1/api-keys/:id/rotate
+ * @openapi
+ * /api-keys/{id}/rotate:
+ *   put:
+ *     summary: Rotate an API Key
+ *     tags: [API Keys]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: API key rotated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
  */
 router.put('/:id/rotate', async (req, res, next) => {
   try {
@@ -55,8 +177,29 @@ router.put('/:id/rotate', async (req, res, next) => {
 });
 
 /**
- * Revoke an API Key
- * DELETE /api/v1/api-keys/:id
+ * @openapi
+ * /api-keys/{id}:
+ *   delete:
+ *     summary: Revoke an API Key
+ *     tags: [API Keys]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: API key revoked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.delete('/:id', async (req, res, next) => {
   try {
