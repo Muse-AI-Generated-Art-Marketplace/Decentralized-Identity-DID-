@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const rateLimit = require("express-rate-limit");
 const RedisStore = require("rate-limit-redis");
 const Redis = require("redis");
@@ -44,14 +45,75 @@ const initializeRedis = async () => {
     );
     return null;
   }
+=======
+const rateLimit = require('express-rate-limit');
+// const RedisStore = require('rate-limit-redis');
+// const Redis = require('redis');
+// const { logger } = require('./logger');
+
+// Simple logger fallback to avoid circular dependency
+const logger = {
+  info: console.log,
+  warn: console.warn,
+  error: console.error
+>>>>>>> upstream/main
 };
 
+// Redis client for distributed rate limiting
+// Temporarily disabled for testing
+// let redisClient;
+
+// const initializeRedis = async () => {
+//   try {
+//     redisClient = Redis.createClient({
+//       url: process.env.REDIS_URL || 'redis://localhost:6379',
+//       retry_strategy: (options) => {
+//         if (options.error && options.error.code === 'ECONNREFUSED') {
+//           logger.error('Redis server connection refused');
+//           return new Error('Redis server connection refused');
+//         }
+//         if (options.total_retry_time > 1000 * 60 * 60) {
+//           logger.error('Redis retry time exhausted');
+//           return new Error('Retry time exhausted');
+//         }
+//         if (options.attempt > 10) {
+//           logger.error('Redis retry attempts exhausted');
+//           return undefined;
+//         }
+//         return Math.min(options.attempt * 100, 3000);
+//       }
+//     });
+
+// redisClient.on('error', (err) => {
+//   logger.error('Redis Client Error:', err);
+// });
+
+// redisClient.on('connect', () => {
+//   logger.info('Redis client connected');
+// });
+
+// await redisClient.connect();
+// return redisClient;
+//   } catch (error) {
+//   logger.warn('Redis connection failed, falling back to memory store:', error.message);
+//   return null;
+// }
+// };
+
 // Initialize Redis on module load if enabled
+<<<<<<< HEAD
 if (process.env.RATE_LIMIT_ENABLE_REDIS !== "false") {
   initializeRedis();
 } else {
   logger.info("Redis rate limiting disabled, using memory store");
 }
+=======
+// if (process.env.RATE_LIMIT_ENABLE_REDIS !== 'false') {
+//   initializeRedis();
+// } else {
+logger.info('Redis rate limiting disabled, using memory store');
+// }
+>>>>>>> upstream/main
 
 // Rate limiting configurations using environment variables
 const RATE_LIMIT_CONFIGS = {
@@ -217,6 +279,7 @@ const createRateLimiter = (config, keyGenerator = null) => {
   };
 
   // Use Redis store if available, fallback to memory store
+<<<<<<< HEAD
   if (redisClient) {
     limiterConfig.store = new RedisStore({
       client: redisClient,
@@ -224,6 +287,16 @@ const createRateLimiter = (config, keyGenerator = null) => {
       resetExpiryOnChange: true,
     });
   }
+=======
+  // Temporarily disabled for testing
+  // if (redisClient) {
+  //   limiterConfig.store = new RedisStore({
+  //     client: redisClient,
+  //     prefix: 'rl:',
+  //     resetExpiryOnChange: true
+  //   });
+  // }
+>>>>>>> upstream/main
 
   return rateLimit(limiterConfig);
 };
@@ -255,6 +328,7 @@ const createDynamicRateLimiter = (baseConfig) => {
 
     // Adjust limits based on user tier if available
     if (req.user) {
+<<<<<<< HEAD
       const tierMultiplier =
         {
           free: 1,
@@ -262,6 +336,14 @@ const createDynamicRateLimiter = (baseConfig) => {
           premium: 5,
           enterprise: 10,
         }[req.user.tier] || 1;
+=======
+      const tierMultiplier = {
+        'free': 1,
+        'basic': 2,
+        'premium': 5,
+        'enterprise': 10
+      }[req.user.tier] || 1;
+>>>>>>> upstream/main
 
       key = `${req.user.id}:${tierMultiplier}`;
     }
@@ -342,6 +424,7 @@ const getRateLimitStatus = async () => {
   }
 
   try {
+<<<<<<< HEAD
     const info = await redisClient.info("memory");
     return {
       status: "redis_store",
@@ -353,6 +436,19 @@ const getRateLimitStatus = async () => {
       status: "redis_error",
       message: "Redis error, falling back to memory store",
       error: error.message,
+=======
+    const info = await redisClient.info('memory');
+    return {
+      status: 'redis_store',
+      message: 'Using Redis for distributed rate limiting',
+      redis_info: info
+    };
+  } catch (error) {
+    return {
+      status: 'redis_error',
+      message: 'Redis error, falling back to memory store',
+      error: error.message
+>>>>>>> upstream/main
     };
   }
 };

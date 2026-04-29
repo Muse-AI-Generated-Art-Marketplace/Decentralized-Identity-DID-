@@ -27,13 +27,9 @@ const options = {
         },
       },
     },
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
+
   },
-  apis: ['./src/routes/*.js', './src/server.js'], // paths to files containing OpenAPI annotations
+  apis: ['./src/routes/**/*.js', './src/server.js'], // paths to files containing OpenAPI annotations
 };
 
 const swaggerSpec = swaggerJsdoc(options);

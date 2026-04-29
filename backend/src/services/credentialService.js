@@ -1,6 +1,9 @@
 const { logger } = require('../middleware');
 const redis = require('../utils/redis');
 const crypto = require('crypto');
+const webhookService = require('./webhookService');
+const templateService = require('./templateService');
+const { credentialVerificationQueue } = require('../config/queue');
 
 class CredentialService {
   constructor() {
@@ -16,14 +19,14 @@ class CredentialService {
       // Try cache first
       const cacheKey = `${this.cachePrefix}${id}`;
       const cached = await redis.get(cacheKey);
-      
+
       if (cached) {
         return JSON.parse(cached);
       }
 
       // Fetch from database/blockchain
       const credential = await this.fetchCredentialFromSource(id);
-      
+
       if (credential) {
         // Cache for 5 minutes
         await redis.setex(cacheKey, 300, JSON.stringify(credential));
@@ -48,7 +51,7 @@ class CredentialService {
       if (subject) query.subject = subject;
       if (credentialType) query.credentialType = credentialType;
       if (revoked !== undefined) query.revoked = revoked;
-      
+
       if (expired !== undefined) {
         if (expired) {
           query.expires = { $lt: new Date() };
@@ -78,7 +81,7 @@ class CredentialService {
       if (subject) query.subject = subject;
       if (credentialType) query.credentialType = credentialType;
       if (revoked !== undefined) query.revoked = revoked;
-      
+
       if (expired !== undefined) {
         if (expired) {
           query.expires = { $lt: new Date() };
@@ -99,15 +102,30 @@ class CredentialService {
 
   async issueCredential(credentialData) {
     try {
-      const {
+      let {
         issuer,
         subject,
         credentialType,
         claims,
         expires,
         credentialSchema,
-        proof
+        proof,
+        templateId
       } = credentialData;
+
+      // If templateId is provided, validate claims against the template
+      if (templateId) {
+        const template = await templateService.getTemplateById(templateId);
+        credentialType = credentialType || template.credentialType;
+        credentialSchema = credentialSchema || template.schemaUri;
+
+        // Basic claim validation against template
+        for (const req of template.requiredClaims) {
+          if (req.required && (claims[req.name] === undefined || claims[req.name] === null)) {
+            throw new Error(`Missing required claim: ${req.name} (from template ${template.name})`);
+          }
+        }
+      }
 
       // Validate input
       if (!issuer || !subject || !credentialType || !claims) {
@@ -148,6 +166,9 @@ class CredentialService {
       // Publish to subscription channel
       await this.publishCredentialEvent(this.subscriptionChannels.CREDENTIAL_ISSUED, created);
 
+      // Trigger webhooks
+      await webhookService.trigger('credential.issued', created);
+
       logger.info('Credential issued successfully:', { id, issuer, subject });
       return created;
     } catch (error) {
@@ -182,6 +203,9 @@ class CredentialService {
 
       // Publish to subscription channel
       await this.publishCredentialEvent(this.subscriptionChannels.CREDENTIAL_REVOKED, revoked);
+
+      // Trigger webhooks
+      await webhookService.trigger('credential.revoked', revoked);
 
       logger.info('Credential revoked successfully:', { id });
       return revoked;
@@ -229,40 +253,54 @@ class CredentialService {
   }
 
   async verifyCredential(credential) {
+    let result = { valid: false };
     try {
       // Check if credential exists and is not revoked
       const stored = await this.getCredential(credential.id);
       if (!stored) {
-        return { valid: false, reason: 'Credential not found' };
+        result.reason = 'Credential not found';
+      } else if (stored.revoked) {
+        result.reason = 'Credential has been revoked';
+      } else if (stored.expires && new Date(stored.expires) < new Date()) {
+        // Check expiration
+        result.reason = 'Credential has expired';
+      } else if (this.calculateDataHash(credential.claims) !== stored.dataHash) {
+        // Verify data hash
+        result.reason = 'Credential data has been tampered with';
+      } else if (credential.proof && !(await this.verifyProof(credential))) {
+        // Verify proof if present
+        result.reason = 'Invalid proof';
+      } else {
+        result.valid = true;
       }
-
-      if (stored.revoked) {
-        return { valid: false, reason: 'Credential has been revoked' };
-      }
-
-      // Check expiration
-      if (stored.expires && new Date(stored.expires) < new Date()) {
-        return { valid: false, reason: 'Credential has expired' };
-      }
-
-      // Verify data hash
-      const calculatedHash = this.calculateDataHash(credential.claims);
-      if (calculatedHash !== stored.dataHash) {
-        return { valid: false, reason: 'Credential data has been tampered with' };
-      }
-
-      // Verify proof if present
-      if (credential.proof) {
-        const proofValid = await this.verifyProof(credential);
-        if (!proofValid) {
-          return { valid: false, reason: 'Invalid proof' };
-        }
-      }
-
-      return { valid: true };
     } catch (error) {
       logger.error('Error verifying credential:', error);
-      return { valid: false, reason: 'Verification error' };
+      result.reason = 'Verification error';
+    }
+
+    // Trigger webhooks for verification result
+    await webhookService.trigger('credential.verified', { credentialId: credential.id, result });
+
+    return result;
+  }
+
+  async verifyCredentialAsync(credential) {
+    try {
+      const job = await credentialVerificationQueue.add('verify-credential', { credential }, {
+        priority: 1,
+        removeOnComplete: false
+      });
+
+      logger.info('Credential verification job queued:', { jobId: job.id, credentialId: credential.id });
+
+      return {
+        jobId: job.id,
+        status: 'queued',
+        message: 'Credential verification queued for processing'
+      };
+    } catch (error) {
+      logger.error('Error queuing credential verification:', error);
+      throw error;
     }
   }
 
@@ -273,9 +311,9 @@ class CredentialService {
         const channel = issuer && subject
           ? `${this.subscriptionChannels.CREDENTIAL_ISSUED}:${issuer}:${subject}`
           : issuer
-          ? `${this.subscriptionChannels.CREDENTIAL_ISSUED}:${issuer}`
-          : this.subscriptionChannels.CREDENTIAL_ISSUED;
-        
+            ? `${this.subscriptionChannels.CREDENTIAL_ISSUED}:${issuer}`
+            : this.subscriptionChannels.CREDENTIAL_ISSUED;
+
         logger.info(`Subscribed to credential issued events for issuer: ${issuer || 'all'}, subject: ${subject || 'all'}`);
       }
     };
@@ -287,9 +325,9 @@ class CredentialService {
         const channel = issuer && subject
           ? `${this.subscriptionChannels.CREDENTIAL_REVOKED}:${issuer}:${subject}`
           : issuer
-          ? `${this.subscriptionChannels.CREDENTIAL_REVOKED}:${issuer}`
-          : this.subscriptionChannels.CREDENTIAL_REVOKED;
-        
+            ? `${this.subscriptionChannels.CREDENTIAL_REVOKED}:${issuer}`
+            : this.subscriptionChannels.CREDENTIAL_REVOKED;
+
         logger.info(`Subscribed to credential revoked events for issuer: ${issuer || 'all'}, subject: ${subject || 'all'}`);
       }
     };
@@ -302,7 +340,7 @@ class CredentialService {
     const hash = crypto.createHash('sha256')
       .update(`${issuer}:${subject}:${credentialType}:${timestamp}:${randomBytes}`)
       .digest('hex');
-    
+
     return `urn:uuid:${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`;
   }
 
@@ -382,12 +420,12 @@ class CredentialService {
     credentials.sort((a, b) => {
       let aVal = a[sortBy];
       let bVal = b[sortBy];
-      
+
       if (sortBy === 'issued' || sortBy === 'expires') {
         aVal = new Date(aVal);
         bVal = new Date(bVal);
       }
-      
+
       if (sortOrder === 'desc') {
         return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
       } else {
@@ -431,7 +469,7 @@ class CredentialService {
   async saveCredentialToSource(credential) {
     // Mock implementation - in production, this would save to database or blockchain
     const mockCredentials = this.getMockCredentials();
-    
+
     // Check if credential already exists
     const existingIndex = mockCredentials.findIndex(cred => cred.id === credential.id);
     if (existingIndex >= 0) {
@@ -439,7 +477,7 @@ class CredentialService {
     } else {
       mockCredentials.push(credential);
     }
-    
+
     return credential;
   }
 
@@ -447,15 +485,15 @@ class CredentialService {
     // Mock implementation - in production, this would perform full-text search
     const credentials = this.getMockCredentials();
     const searchQuery = query.toLowerCase();
-    
+
     const results = credentials.filter(cred => {
       return cred.id.toLowerCase().includes(searchQuery) ||
-             cred.issuer.toLowerCase().includes(searchQuery) ||
-             cred.subject.toLowerCase().includes(searchQuery) ||
-             cred.credentialType.toLowerCase().includes(searchQuery) ||
-             JSON.stringify(cred.claims).toLowerCase().includes(searchQuery);
+        cred.issuer.toLowerCase().includes(searchQuery) ||
+        cred.subject.toLowerCase().includes(searchQuery) ||
+        cred.credentialType.toLowerCase().includes(searchQuery) ||
+        JSON.stringify(cred.claims).toLowerCase().includes(searchQuery);
     });
-    
+
     return results.slice(0, limit);
   }
 
@@ -501,7 +539,7 @@ class CredentialService {
       const subject = subjects[i % subjects.length];
       const issued = new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString();
       const revoked = i % 20 === 0; // Every 20th credential is revoked
-      
+
       credentials.push(generateCredential(
         `urn:uuid:${i.toString(16).padStart(32, '0')}-${i.toString(16).padStart(8, '0')}-${i.toString(16).padStart(4, '0')}-${i.toString(16).padStart(4, '0')}-${i.toString(16).padStart(12, '0')}`,
         type,

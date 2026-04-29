@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './i18n';
 
 import { ThemeModeProvider, useThemeMode } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
@@ -17,6 +18,7 @@ import Account from './pages/Account';
 import Scanner from './pages/Scanner';
 import Contracts from './pages/Contracts';
 import VerifyCredential from './pages/VerifyCredential';
+import Analytics from './pages/Analytics';
 
 function AppContent() {
   const { theme, mode } = useThemeMode();
@@ -40,6 +42,7 @@ function AppContent() {
               <Route path="/scanner" element={<Scanner />} />
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/verify-credential" element={<VerifyCredential />} />
+              <Route path="/analytics" element={<Analytics />} />
             </Routes>
           </main>
           <ToastContainer

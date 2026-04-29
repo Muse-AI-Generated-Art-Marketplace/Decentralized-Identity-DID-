@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   AppBar,
   Box,
@@ -18,6 +19,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Badge,
 } from "@mui/material";
 import {
   AccountBalanceWallet,
@@ -25,97 +27,150 @@ import {
   Brightness7,
   Menu as MenuIcon,
   QrCodeScanner,
+  Circle,
+  Logout,
 } from "@mui/icons-material";
 import { useWallet } from "../contexts/WalletContext";
 import { useThemeMode } from "../contexts/ThemeContext";
-
-const navItems = [
-  { label: "Dashboard", to: "/" },
-  { label: "Credentials", to: "/credentials" },
-  { label: "Create DID", to: "/create-did" },
-  { label: "Resolve DID", to: "/resolve-did" },
-  { label: "Verify", to: "/verify-credential" },
-  { label: "QR Tools", to: "/scanner" },
-  { label: "Account", to: "/account" },
-];
+import LanguageSelector from "./LanguageSelector";
 
 const DRAWER_WIDTH = 260;
 
 const Navbar = () => {
-  const { wallet, isConnected } = useWallet();
+  const { t } = useTranslation();
+  const { wallet, isConnected, disconnectWallet } = useWallet();
   const { mode, toggleTheme } = useThemeMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const handleDrawerToggle = () => setDrawerOpen((prev) => !prev);
+  const navItems = [
+    { label: t("navigation.dashboard"), to: "/" },
+    { label: t("navigation.credentials"), to: "/credentials" },
+    { label: "Analytics", to: "/analytics" },
+    { label: t("navigation.createDid"), to: "/create-did" },
+    { label: t("navigation.resolveDid"), to: "/resolve-did" },
+    { label: "Verify", to: "/verify-credential" },
+    { label: t("navigation.scanner"), to: "/scanner" },
+    { label: t("navigation.account"), to: "/account" },
+  ];
+
+  const handleDrawerToggle = () => {
+    setDrawerOpen(!drawerOpen);
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectWallet();
+    } catch (error) {
+      console.error('Disconnect error:', error);
+    }
+  };
 
   const drawerContent = (
-    <Box
-      sx={{ width: DRAWER_WIDTH, pt: 2 }}
-      role="presentation"
-      onClick={() => setDrawerOpen(false)}
-    >
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 2, pb: 2 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: "10px",
-            display: "grid",
-            placeItems: "center",
-            background:
-              "linear-gradient(135deg, rgba(90,209,230,0.9), rgba(255,184,77,0.9))",
-            color: "#081117",
-          }}
-        >
-          <QrCodeScanner fontSize="small" />
-        </Box>
-        <Typography variant="subtitle1" fontWeight="bold">
-          Stellar DID
-        </Typography>
-      </Stack>
-
+    <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
+      <Typography variant="h6" sx={{ my: 2 }}>
+        Stellar DID Platform
+      </Typography>
       <Divider />
-
       <List>
         {navItems.map((item) => (
           <ListItem key={item.to} disablePadding>
-            <ListItemButton
-              component={NavLink}
-              to={item.to}
-              sx={{
-                borderRadius: 1,
-                mx: 1,
-                my: 0.25,
-                "&.active": {
-                  bgcolor: "primary.main",
-                  color: "primary.contrastText",
-                  "& .MuiListItemText-primary": { fontWeight: "bold" },
-                },
-              }}
-            >
+            <ListItemButton sx={{ textAlign: 'center' }} component={NavLink} to={item.to}>
               <ListItemText primary={item.label} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-
-      <Divider sx={{ mt: 1, mb: 2 }} />
-
-      <Box sx={{ px: 2 }}>
-        <Chip
-          icon={<AccountBalanceWallet />}
-          color={isConnected ? "success" : "default"}
-          label={
-            isConnected
-              ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
-              : "No wallet"
-          }
-          variant={isConnected ? "filled" : "outlined"}
-          size="small"
-          sx={{ width: "100%" }}
-        />
+      <Divider />
+      <Box sx={{ p: 2 }}>
+        <LanguageSelector />
+        {/* Mobile Wallet Status Indicator */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            mt: 2,
+            p: 1.5,
+            borderRadius: 2,
+            backgroundColor: isConnected 
+              ? 'rgba(76, 175, 80, 0.15)' 
+              : 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid',
+            borderColor: isConnected 
+              ? 'rgba(76, 175, 80, 0.4)' 
+              : 'rgba(255, 255, 255, 0.2)',
+          }}
+        >
+          <Badge
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            badgeContent={
+              <Circle
+                sx={{
+                  fontSize: 8,
+                  color: isConnected ? '#4caf50' : '#f44336',
+                  backgroundColor: isConnected ? '#4caf50' : '#f44336',
+                  borderRadius: '50%',
+                  border: '1.5px solid',
+                  borderColor: 'background.default',
+                }}
+              />
+            }
+          >
+            <AccountBalanceWallet 
+              sx={{ 
+                color: isConnected ? 'success.main' : 'text.secondary',
+                fontSize: 28,
+              }} 
+            />
+          </Badge>
+          
+          <Box sx={{ flex: 1, textAlign: 'left' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 600,
+                color: isConnected ? 'success.main' : 'text.secondary',
+              }}
+            >
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: isConnected ? 'text.primary' : 'text.disabled',
+                display: 'block',
+              }}
+            >
+              {isConnected 
+                ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
+                : 'No wallet connected'}
+            </Typography>
+          </Box>
+          
+          {isConnected && (
+            <Tooltip title="Disconnect wallet">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  handleDrawerToggle();
+                  handleDisconnect();
+                }}
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'error.main',
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  },
+                }}
+              >
+                <Logout sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
     </Box>
   );
@@ -127,41 +182,43 @@ const Navbar = () => {
         color="transparent"
         sx={{
           backdropFilter: "blur(18px)",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          backgroundColor:
-            mode === "dark"
-              ? "rgba(9, 19, 26, 0.88)"
-              : "rgba(255,255,255,0.82)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          backgroundColor: "rgba(9, 19, 26, 0.78)",
         }}
       >
-        <Toolbar sx={{ gap: 1, justifyContent: "space-between" }}>
-          {/* Brand */}
-          <Stack direction="row" spacing={1} alignItems="center">
+        <Toolbar
+          sx={{
+            gap: 2,
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            py: 1,
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
             {isMobile && (
               <IconButton
                 color="inherit"
-                aria-label="Open navigation menu"
+                aria-label="open drawer"
                 edge="start"
                 onClick={handleDrawerToggle}
+                sx={{ mr: 2 }}
               >
                 <MenuIcon />
               </IconButton>
             )}
             <Box
               sx={{
-                width: 38,
-                height: 38,
-                borderRadius: "12px",
+                width: 42,
+                height: 42,
+                borderRadius: "14px",
                 display: "grid",
                 placeItems: "center",
                 background:
                   "linear-gradient(135deg, rgba(90,209,230,0.9), rgba(255,184,77,0.9))",
                 color: "#081117",
-                flexShrink: 0,
               }}
             >
-              <QrCodeScanner fontSize="small" />
+              <QrCodeScanner />
             </Box>
             <Box sx={{ display: { xs: "none", sm: "block" } }}>
               <Typography variant="h6" noWrap>
@@ -202,6 +259,8 @@ const Navbar = () => {
 
           {/* Right actions */}
           <Stack direction="row" spacing={1} alignItems="center">
+            <LanguageSelector />
+
             <Tooltip
               title={`Switch to ${mode === "light" ? "dark" : "light"} mode`}
             >
@@ -216,17 +275,93 @@ const Navbar = () => {
             </Tooltip>
 
             {!isMobile && (
-              <Chip
-                icon={<AccountBalanceWallet />}
-                color={isConnected ? "success" : "default"}
-                label={
-                  isConnected
-                    ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
-                    : "No wallet"
-                }
-                variant={isConnected ? "filled" : "outlined"}
-                size="small"
-              />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 2,
+                  backgroundColor: isConnected 
+                    ? 'rgba(76, 175, 80, 0.15)' 
+                    : 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid',
+                  borderColor: isConnected 
+                    ? 'rgba(76, 175, 80, 0.4)' 
+                    : 'rgba(255, 255, 255, 0.2)',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                {/* Connection Status Indicator */}
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={
+                    <Circle
+                      sx={{
+                        fontSize: 10,
+                        color: isConnected ? '#4caf50' : '#f44336',
+                        backgroundColor: isConnected ? '#4caf50' : '#f44336',
+                        borderRadius: '50%',
+                        border: '2px solid',
+                        borderColor: 'background.paper',
+                      }}
+                    />
+                  }
+                >
+                  <AccountBalanceWallet 
+                    sx={{ 
+                      color: isConnected ? 'success.main' : 'text.secondary',
+                      fontSize: 24,
+                    }} 
+                  />
+                </Badge>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: isConnected ? 'success.main' : 'text.secondary',
+                      fontSize: '0.7rem',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: isConnected ? 'text.primary' : 'text.disabled',
+                      fontSize: '0.65rem',
+                    }}
+                  >
+                    {isConnected 
+                      ? `${wallet?.publicKey?.slice(0, 6)}...${wallet?.publicKey?.slice(-4)}`
+                      : 'No wallet'}
+                  </Typography>
+                </Box>
+                
+                {isConnected && (
+                  <Tooltip title="Disconnect wallet">
+                    <IconButton
+                      size="small"
+                      onClick={handleDisconnect}
+                      sx={{
+                        ml: 0.5,
+                        color: 'text.secondary',
+                        '&:hover': {
+                          color: 'error.main',
+                          backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        },
+                      }}
+                    >
+                      <Logout sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             )}
           </Stack>
         </Toolbar>
