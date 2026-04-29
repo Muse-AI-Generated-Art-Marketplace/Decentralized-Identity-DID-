@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const credentialService = require('../../services/credentialService');
-const { logger } = require('../../middleware');
+const credentialService = require('../services/credentialService');
+const { logger } = require('../middleware');
 const { body, query, validationResult } = require('express-validator');
 
 // Middleware to handle validation errors
@@ -15,101 +15,6 @@ const handleValidationErrors = (req, res, next) => {
   }
   next();
 };
-
-/**
- * @openapi
- * tags:
- *   name: Credentials
- *   description: Verifiable Credentials management
- */
-
-/**
- * @openapi
- * /credentials:
- *   get:
- *     summary: Get paginated list of credentials
- *     tags: [Credentials]
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *         description: Number of results per page
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           minimum: 0
- *           default: 0
- *         description: Pagination offset
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [issued, expires, credentialType, issuer]
- *           default: issued
- *         description: Field to sort by
- *       - in: query
- *         name: sortOrder
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *           default: desc
- *         description: Sort order
- *       - in: query
- *         name: issuer
- *         schema:
- *           type: string
- *         description: Filter by issuer DID
- *       - in: query
- *         name: subject
- *         schema:
- *           type: string
- *         description: Filter by subject DID
- *       - in: query
- *         name: credentialType
- *         schema:
- *           type: string
- *         description: Filter by credential type
- *       - in: query
- *         name: revoked
- *         schema:
- *           type: boolean
- *         description: Filter by revoked status
- *       - in: query
- *         name: expired
- *         schema:
- *           type: boolean
- *         description: Filter by expired status
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Full-text search query
- *     responses:
- *       200:
- *         description: List of credentials
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 credentials:
- *                   type: array
- *                   items:
- *                     type: object
- *                 total:
- *                   type: integer
- *                 limit:
- *                   type: integer
- *                 offset:
- *                   type: integer
- *                 hasMore:
- *                   type: boolean
- */
 
 // GET /credentials - Get paginated list of credentials
 router.get('/',
@@ -141,67 +46,47 @@ router.get('/',
         search
       } = req.query;
 
-      let credentials;
-      let total;
+    let credentials;
+    let total;
 
-      if (search) {
-        // Use search endpoint for text search
-        credentials = await credentialService.searchCredentials(search, parseInt(limit));
-        total = credentials.length;
-      } else {
-        // Use filtered query
-        const filters = {};
-        if (issuer) filters.issuer = issuer;
-        if (subject) filters.subject = subject;
-        if (credentialType) filters.credentialType = credentialType;
-        if (revoked !== undefined) filters.revoked = revoked === 'true';
-        if (expired !== undefined) filters.expired = expired === 'true';
+    if (search) {
+      credentials = await credentialService.searchCredentials(search, parseInt(limit));
+      total = credentials.length;
+    } else {
+      const filters = {};
+      if (issuer) filters.issuer = issuer;
+      if (subject) filters.subject = subject;
+      if (credentialType) filters.credentialType = credentialType;
+      if (revoked !== undefined) filters.revoked = revoked;
+      if (expired !== undefined) filters.expired = expired;
 
-        credentials = await credentialService.getCredentials(filters, {
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          sortBy,
-          sortOrder
-        });
-
-        total = await credentialService.getCredentialCount(filters);
-      }
-
-      res.json({
-        credentials,
-        total,
+      credentials = await credentialService.getCredentials(filters, {
         limit: parseInt(limit),
         offset: parseInt(offset),
-        hasMore: (parseInt(offset) + credentials.length) < total
+        sortBy,
+        sortOrder
       });
-    } catch (error) {
-      logger.error('Error fetching credentials:', error);
-      res.status(500).json({
-        error: 'Failed to fetch credentials',
-        message: error.message
-      });
-    }
-  }
-);
 
-/**
- * @openapi
- * /credentials/{id}:
- *   get:
- *     summary: Get single credential by ID
- *     tags: [Credentials]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Credential details
- *       404:
- *         description: Credential not found
- */
+      total = await credentialService.getCredentialCount(filters);
+    }
+
+    res.json({
+      credentials,
+      total,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      hasMore: (parseInt(offset) + credentials.length) < total
+    });
+  } catch (error) {
+    logger.error('Error fetching credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch credentials',
+      message: error.message
+    });
+  }
+});
+
 // GET /credentials/:id - Get single credential by ID
 router.get('/:id',
   [
@@ -212,7 +97,7 @@ router.get('/:id',
     try {
       const { id } = req.params;
       const credential = await credentialService.getCredential(id);
-
+      
       if (!credential) {
         return res.status(404).json({
           error: 'Credential not found',
@@ -220,55 +105,17 @@ router.get('/:id',
         });
       }
 
-      res.json(credential);
-    } catch (error) {
-      logger.error('Error fetching credential:', error);
-      res.status(500).json({
-        error: 'Failed to fetch credential',
-        message: error.message
-      });
-    }
+    res.json(credential);
+  } catch (error) {
+    logger.error('Error fetching credential:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch credential',
+      message: error.message
+    });
   }
-);
+});
 
-/**
- * @openapi
- * /credentials/count:
- *   get:
- *     summary: Get total count of credentials with filters
- *     tags: [Credentials]
- *     parameters:
- *       - in: query
- *         name: issuer
- *         schema:
- *           type: string
- *       - in: query
- *         name: subject
- *         schema:
- *           type: string
- *       - in: query
- *         name: credentialType
- *         schema:
- *           type: string
- *       - in: query
- *         name: revoked
- *         schema:
- *           type: boolean
- *       - in: query
- *         name: expired
- *         schema:
- *           type: boolean
- *     responses:
- *       200:
- *         description: Total count
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 count:
- *                   type: integer
- */
 // GET /credentials/count - Get total count of credentials with filters
 router.get('/count',
   [
@@ -282,7 +129,7 @@ router.get('/count',
   async (req, res) => {
     try {
       const { issuer, subject, credentialType, revoked, expired } = req.query;
-
+      
       const filters = {};
       if (issuer) filters.issuer = issuer;
       if (subject) filters.subject = subject;
@@ -291,7 +138,7 @@ router.get('/count',
       if (expired !== undefined) filters.expired = expired === 'true';
 
       const count = await credentialService.getCredentialCount(filters);
-
+      
       res.json({ count });
     } catch (error) {
       logger.error('Error fetching credential count:', error);
@@ -303,42 +150,6 @@ router.get('/count',
   }
 );
 
-/**
- * @openapi
- * /credentials/search:
- *   get:
- *     summary: Search credentials
- *     tags: [Credentials]
- *     parameters:
- *       - in: query
- *         name: q
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *     responses:
- *       200:
- *         description: Search results
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 credentials:
- *                   type: array
- *                   items:
- *                     type: object
- *                 total:
- *                   type: integer
- *                 query:
- *                   type: string
- */
 // GET /credentials/search - Search credentials
 router.get('/search',
   [
@@ -349,9 +160,9 @@ router.get('/search',
   async (req, res) => {
     try {
       const { q: query, limit = 20 } = req.query;
-
+      
       const results = await credentialService.searchCredentials(query, parseInt(limit));
-
+      
       res.json({
         credentials: results,
         total: results.length,
@@ -367,48 +178,6 @@ router.get('/search',
   }
 );
 
-/**
- * @openapi
- * /credentials/issue:
- *   post:
- *     summary: Issue new credential
- *     tags: [Credentials]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [issuer, subject, credentialType, claims]
- *             properties:
- *               issuer:
- *                 type: string
- *                 description: Issuer DID
- *               subject:
- *                 type: string
- *                 description: Subject DID
- *               credentialType:
- *                 type: string
- *               claims:
- *                 type: object
- *                 description: Credential claims data
- *               expires:
- *                 type: string
- *                 format: date-time
- *                 description: Optional expiration date (ISO8601)
- *     responses:
- *       201:
- *         description: Credential issued successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 credential:
- *                   type: object
- */
 // POST /credentials/issue - Issue new credential
 router.post('/issue',
   [
@@ -423,7 +192,7 @@ router.post('/issue',
     try {
       const credentialData = req.body;
       const credential = await credentialService.issueCredential(credentialData);
-
+      
       res.status(201).json({
         message: 'Credential issued successfully',
         credential
@@ -438,45 +207,6 @@ router.post('/issue',
   }
 );
 
-/**
- * @openapi
- * /credentials/verify:
- *   post:
- *     summary: Verify credential
- *     tags: [Credentials]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [credentialId]
- *             properties:
- *               credentialId:
- *                 type: string
- *               credential:
- *                 type: object
- *                 description: Optional credential data to verify directly
- *     responses:
- *       200:
- *         description: Verification result
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 credentialId:
- *                   type: string
- *                 verifiedAt:
- *                   type: string
- *                   format: date-time
- *                 valid:
- *                   type: boolean
- *                 reason:
- *                   type: string
- *                 details:
- *                   type: object
- */
 // POST /credentials/verify - Verify credential
 router.post('/verify',
   [
@@ -487,7 +217,7 @@ router.post('/verify',
   async (req, res) => {
     try {
       const { credentialId, credential } = req.body;
-
+      
       let result;
       if (credential) {
         // Verify provided credential data
@@ -503,7 +233,7 @@ router.post('/verify',
         }
         result = await credentialService.verifyCredential(storedCredential);
       }
-
+      
       res.json({
         credentialId,
         verifiedAt: new Date().toISOString(),
@@ -519,35 +249,6 @@ router.post('/verify',
   }
 );
 
-/**
- * @openapi
- * /credentials/revoke:
- *   post:
- *     summary: Revoke credential
- *     tags: [Credentials]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [credentialId]
- *             properties:
- *               credentialId:
- *                 type: string
- *     responses:
- *       200:
- *         description: Credential revoked successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 credential:
- *                   type: object
- */
 // POST /credentials/revoke - Revoke credential
 router.post('/revoke',
   [
@@ -558,7 +259,7 @@ router.post('/revoke',
     try {
       const { credentialId } = req.body;
       const revokedCredential = await credentialService.revokeCredential(credentialId);
-
+      
       res.json({
         message: 'Credential revoked successfully',
         credential: revokedCredential
@@ -573,33 +274,9 @@ router.post('/revoke',
   }
 );
 
-/**
- * @openapi
- * /credentials/templates:
- *   get:
- *     summary: Get available credential templates
- *     tags: [Credentials]
- *     responses:
- *       200:
- *         description: List of credential templates
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   name:
- *                     type: string
- *                   claims:
- *                     type: object
- */
 // GET /credentials/templates - Get credential templates
 router.get('/templates', async (req, res) => {
   try {
-    // Mock templates for now - in a real implementation, these would come from a database
     const templates = [
       {
         id: 'university-degree',
@@ -650,6 +327,7 @@ router.get('/templates', async (req, res) => {
   } catch (error) {
     logger.error('Error fetching credential templates:', error);
     res.status(500).json({
+      success: false,
       error: 'Failed to fetch credential templates',
       message: error.message
     });
@@ -657,3 +335,4 @@ router.get('/templates', async (req, res) => {
 });
 
 module.exports = router;
+

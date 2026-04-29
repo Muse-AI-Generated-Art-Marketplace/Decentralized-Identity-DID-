@@ -1,12 +1,84 @@
 const express = require('express');
 const router = express.Router();
+<<<<<<< HEAD
+const { validateEndpoint, validateInput, sanitizeQuery, sanitizeParams } = require('../middleware/inputValidation');
+=======
 const templateService = require('../services/templateService');
 const webhookService = require('../services/webhookService');
 const Webhook = require('../models/Webhook'); // For basic CRUD without a service wrapper for all operations
 const analyticsService = require('../services/analyticsService');
+>>>>>>> upstream/main
 
 const v1Routes = require('./v1');
 
+<<<<<<< HEAD
+// Apply sanitization middleware globally
+router.use(sanitizeQuery);
+router.use(sanitizeParams);
+
+/**
+ * @route   GET /api
+ * @desc    Get API routes info
+ * @access  Public
+ */
+router.get('/', (req, res) => {
+  res.json({ 
+    message: 'API routes works',
+    endpoints: [
+      'POST /contracts/create-account - Create Stellar account',
+      'POST /contracts/fund-account - Fund Stellar account',
+      'GET /contracts/account/:publicKey - Get account balance',
+      'POST /contracts/sign-transaction - Sign transaction'
+    ]
+  });
+});
+
+// Secure account creation
+router.post('/contracts/create-account', async (req, res) => {
+  try {
+    const StellarSdk = require('stellar-sdk');
+    const pair = StellarSdk.Keypair.random();
+    
+    const accountData = {
+      publicKey: pair.publicKey(),
+      secretKey: pair.secret(),
+      network: stellarConfig.network,
+    };
+    
+    res.json({
+      success: true,
+      data: accountData,
+    });
+  } catch (error) {
+    console.error('Account creation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create account',
+    });
+  }
+});
+
+// Secure account funding
+router.post('/contracts/fund-account', validateEndpoint('fundAccount'), async (req, res) => {
+  try {
+    const { publicKey } = req.body;
+    
+    // Use Friendbot for testnet funding
+    if (stellarConfig.network === 'TESTNET') {
+      const response = await fetch(`${stellarConfig.friendbotUrl}?addr=${publicKey}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        res.json({
+          success: true,
+          data: result,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: 'Failed to fund account',
+        });
+=======
 /**
  * @openapi
  * tags:
@@ -37,6 +109,7 @@ router.get('/analytics/dashboard', async (req, res) => {
       meta: {
         timeRange,
         generatedAt: new Date().toISOString()
+>>>>>>> upstream/main
       }
     });
   } catch (error) {
@@ -48,6 +121,10 @@ router.get('/analytics/dashboard', async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+// Secure account balance
+router.get('/contracts/account/:publicKey', validateInput('publicKey', 'params'), async (req, res) => {
+=======
 // Fallback for missing versions or root
 router.get('/', (req, res) => {
   res.json({
@@ -89,6 +166,7 @@ router.get('/', (req, res) => {
 // --- Credential Templates ---
 
 router.get('/templates', async (req, res) => {
+>>>>>>> upstream/main
   try {
     const templates = await templateService.getTemplates(req.query);
     res.json({ success: true, data: templates });
@@ -97,6 +175,25 @@ router.get('/templates', async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+// Secure transaction signing
+router.post('/contracts/sign-transaction', validateEndpoint('signTransaction'), async (req, res) => {
+  try {
+    const { transactionXDR, secretKey } = req.body;
+    
+    const StellarSdk = require('stellar-sdk');
+    const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+    const transaction = StellarSdk.TransactionBuilder.fromXDR(transactionXDR, stellarConfig.passphrase);
+    
+    transaction.sign(keypair);
+    
+    res.json({
+      success: true,
+      data: {
+        signedXDR: transaction.toXDR(),
+      },
+    });
+=======
 /**
  * @openapi
  * /templates:
@@ -124,6 +221,7 @@ router.post('/templates', async (req, res) => {
   try {
     const template = await templateService.createTemplate(req.body);
     res.json({ success: true, data: template });
+>>>>>>> upstream/main
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -237,3 +335,4 @@ router.delete('/webhooks/:id', async (req, res) => {
 });
 
 module.exports = router;
+
