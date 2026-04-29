@@ -12,6 +12,7 @@ const didRoutes = require("./routes/did");
 const credentialRoutes = require("./routes/credentials");
 const batchRoutes = require("./routes/batch");
 const sharingRoutes = require("./routes/credentialSharing");
+const healthRoutes = require("./routes/health");
 
 // Initialize Express app
 const app = express();
@@ -31,22 +32,15 @@ StellarSDK.Network.useTestNetwork();
 if (process.env.STELLAR_NETWORK === "PUBLIC") {
   StellarSDK.Network.usePublicNetwork();
 }
+const redisClient = require("./config/redis"); 
+app.set("redisClient", redisClient);
 
 // Routes
 app.use("/api/did", didRoutes);
 app.use("/api/credentials", credentialRoutes);
 app.use("/api/batch", batchRoutes);
 app.use("/api/sharing", sharingRoutes);
-
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({
-    status: "healthy",
-    network: process.env.STELLAR_NETWORK || "TESTNET",
-    horizon: process.env.STELLAR_HORIZON_URL,
-    timestamp: new Date().toISOString(),
-  });
-});
+app.use("/api/health", healthRoutes);
 
 // Root endpoint
 app.get("/", (req, res) => {
