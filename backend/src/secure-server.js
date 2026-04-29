@@ -1,13 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-<<<<<<< HEAD
 const { smartRateLimiter } = require("./middleware/rateLimiter");
-=======
-const rateLimit = require('express-rate-limit');
-const MetricsMiddleware = require('./middleware/metricsMiddleware');
-const { connectDatabase, disconnectDatabase, getConnectionPoolStats } = require('./utils/database');
->>>>>>> upstream/main
 require('dotenv').config();
 
 // Initialize job queue workers
