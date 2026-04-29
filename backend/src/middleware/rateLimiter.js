@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const rateLimit = require("express-rate-limit");
 const RedisStore = require("rate-limit-redis");
 const Redis = require("redis");
@@ -45,18 +44,6 @@ const initializeRedis = async () => {
     );
     return null;
   }
-=======
-const rateLimit = require('express-rate-limit');
-// const RedisStore = require('rate-limit-redis');
-// const Redis = require('redis');
-// const { logger } = require('./logger');
-
-// Simple logger fallback to avoid circular dependency
-const logger = {
-  info: console.log,
-  warn: console.warn,
-  error: console.error
->>>>>>> upstream/main
 };
 
 // Redis client for distributed rate limiting
@@ -101,19 +88,11 @@ const logger = {
 // };
 
 // Initialize Redis on module load if enabled
-<<<<<<< HEAD
 if (process.env.RATE_LIMIT_ENABLE_REDIS !== "false") {
   initializeRedis();
 } else {
   logger.info("Redis rate limiting disabled, using memory store");
 }
-=======
-// if (process.env.RATE_LIMIT_ENABLE_REDIS !== 'false') {
-//   initializeRedis();
-// } else {
-logger.info('Redis rate limiting disabled, using memory store');
-// }
->>>>>>> upstream/main
 
 // Rate limiting configurations using environment variables
 const RATE_LIMIT_CONFIGS = {
@@ -279,7 +258,6 @@ const createRateLimiter = (config, keyGenerator = null) => {
   };
 
   // Use Redis store if available, fallback to memory store
-<<<<<<< HEAD
   if (redisClient) {
     limiterConfig.store = new RedisStore({
       client: redisClient,
@@ -287,16 +265,6 @@ const createRateLimiter = (config, keyGenerator = null) => {
       resetExpiryOnChange: true,
     });
   }
-=======
-  // Temporarily disabled for testing
-  // if (redisClient) {
-  //   limiterConfig.store = new RedisStore({
-  //     client: redisClient,
-  //     prefix: 'rl:',
-  //     resetExpiryOnChange: true
-  //   });
-  // }
->>>>>>> upstream/main
 
   return rateLimit(limiterConfig);
 };
@@ -328,22 +296,12 @@ const createDynamicRateLimiter = (baseConfig) => {
 
     // Adjust limits based on user tier if available
     if (req.user) {
-<<<<<<< HEAD
-      const tierMultiplier =
-        {
-          free: 1,
-          basic: 2,
-          premium: 5,
-          enterprise: 10,
-        }[req.user.tier] || 1;
-=======
       const tierMultiplier = {
         'free': 1,
         'basic': 2,
         'premium': 5,
         'enterprise': 10
       }[req.user.tier] || 1;
->>>>>>> upstream/main
 
       key = `${req.user.id}:${tierMultiplier}`;
     }
@@ -423,34 +381,20 @@ const getRateLimitStatus = async () => {
     };
   }
 
-  try {
-<<<<<<< HEAD
-    const info = await redisClient.info("memory");
-    return {
-      status: "redis_store",
-      message: "Using Redis for distributed rate limiting",
-      redis_info: info,
-    };
-  } catch (error) {
-    return {
-      status: "redis_error",
-      message: "Redis error, falling back to memory store",
-      error: error.message,
-=======
-    const info = await redisClient.info('memory');
-    return {
-      status: 'redis_store',
-      message: 'Using Redis for distributed rate limiting',
-      redis_info: info
-    };
-  } catch (error) {
-    return {
-      status: 'redis_error',
-      message: 'Redis error, falling back to memory store',
-      error: error.message
->>>>>>> upstream/main
-    };
-  }
+try {
+  const info = await redisClient.info("memory");
+  return {
+    status: "redis_store",
+    message: "Using Redis for distributed rate limiting",
+    redis_info: info,
+  };
+} catch (error) {
+  return {
+    status: "redis_error",
+    message: "Redis error, falling back to memory store",
+    error: error.message,
+  };
+}
 };
 
 // Reset rate limits for a specific user/IP (admin function)
