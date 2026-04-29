@@ -42,4 +42,10 @@ credentialTemplateSchema.pre('save', function(next) {
   next();
 });
 
+// Active templates by type (template lookup during issuance)
+credentialTemplateSchema.index({ credentialType: 1, active: 1 });
+
+// Issuer's templates
+credentialTemplateSchema.index({ issuerDid: 1, active: 1 });
+
 module.exports = mongoose.model('CredentialTemplate', credentialTemplateSchema);
